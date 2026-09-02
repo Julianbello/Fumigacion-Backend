@@ -6,7 +6,7 @@ function verificarToken(req, res, next) {
 
   const token = header.split(" ")[1];
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET || "secret_dev");
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
     req.usuario = payload;
     next();
   } catch (err) {
