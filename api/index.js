@@ -10,7 +10,9 @@ app.use(express.json());
 
 conectarDB();
 
+// Montar en ambas rutas para compatibilidad total con Vercel
 app.use("/api/auth", authRoutes);
+app.use("/auth", authRoutes);
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok", db: "Conectado" });
