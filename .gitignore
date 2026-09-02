@@ -2,3 +2,5 @@
 .env
 coverage/
 dist/
+.vercel
+.env*

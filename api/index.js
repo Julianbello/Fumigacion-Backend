@@ -33,8 +33,9 @@ app.use(async (req, res, next) => {
   }
 });
 
-app.get("/api/test", (req, res) => res.json({ msg: "RUTA REGISTRADA CORRECTAMENTE" }));
+app.get(/.*test$/, (req, res) => res.json({ msg: "RUTA REGISTRADA CORRECTAMENTE" }));
 
+// Ruta de Registro
 app.post(/.*register$/, async (req, res) => {
   try {
     const { username, password } = req.body || {};
@@ -44,6 +45,19 @@ app.post(/.*register$/, async (req, res) => {
     const nuevoUsuario = new User({ username, password });
     await nuevoUsuario.save();
     return res.status(201).json({ message: "Usuario creado exitosamente", user: username });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// Ruta de Login añadida
+app.post(/.*login$/, async (req, res) => {
+  try {
+    const { username, password } = req.body || {};
+    if (!username || !password) return res.status(400).json({ error: "Faltan datos" });
+    const usuario = await User.findOne({ username, password });
+    if (!usuario) return res.status(401).json({ error: "Credenciales inválidas" });
+    return res.status(200).json({ message: "Inicio de sesión exitoso", user: username });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
