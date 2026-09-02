@@ -1,17 +1,16 @@
 ﻿const express = require("express");
 const { verificarToken, requiereRol } = require("../middleware/auth.middleware");
 const { registrarFumigacion } = require("../services/fumigacion.service");
-const { getPool } = require("../config/db");
-
+const Fumigacion = require("../models/Fumigacion");
+const Producto = require("../models/Producto");
 const router = express.Router();
 
 router.post("/", verificarToken, requiereRol("ADMIN", "OPERARIO"), async (req, res) => {
   try {
     const { productoId, litrosAplicados, categoria } = req.body;
     if (!productoId || !litrosAplicados || !categoria) {
-      return res.status(400).json({ error: "productoId, litrosAplicados y categoria son requeridos" });
+      return res.status(400).json({ error: "Campos obligatorios faltantes" });
     }
-
     const registro = await registrarFumigacion({
       productoId,
       litrosAplicados,
@@ -26,16 +25,8 @@ router.post("/", verificarToken, requiereRol("ADMIN", "OPERARIO"), async (req, r
 
 router.get("/", verificarToken, async (req, res) => {
   try {
-    const pool = await getPool();
-    const result = await pool.request().query(`
-      SELECT f.Id AS id, f.ProductoId AS productoId, p.Nombre AS productoNombre,
-             f.Categoria AS categoria, f.LitrosAplicados AS litrosAplicados,
-             f.Responsable AS responsable, f.Fecha AS fecha, f.StockRestante AS stockRestante
-      FROM Fumigaciones f
-      JOIN Productos p ON p.Id = f.ProductoId
-      ORDER BY f.Fecha ASC
-    `);
-    res.json(result.recordset);
+    const fumigaciones = await Fumigacion.find().populate("productoId", "nombre").sort({ fecha: 1 });
+    res.json(fumigaciones);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -43,13 +34,8 @@ router.get("/", verificarToken, async (req, res) => {
 
 router.get("/inventario", verificarToken, async (req, res) => {
   try {
-    const pool = await getPool();
-    const result = await pool.request().query(`
-      SELECT Id AS id, Nombre AS nombre, Categoria AS categoria,
-             DosisMlPorLitro AS dosisMlPorLitro, StockLitros AS stockLitros
-      FROM Productos
-    `);
-    res.json(result.recordset);
+    const productos = await Producto.find();
+    res.json(productos);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
