@@ -76,11 +76,12 @@ stages:
         - script: npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
 
-        - script: |
-            export PATH=$(which node | xargs dirname):$PATH
-            node -v
-            ./node_modules/.bin/jest --runInBand --coverage
-          displayName: 'Ejecutar pruebas unitarias'
+        # Usamos npm test directamente aprovechando que UseNode@1 ya está activo
+        - task: Npm@1
+          displayName: 'Ejecutar pruebas unitarias (Jest)'
+          inputs:
+            command: 'custom'
+            customCommand: 'test -- --coverage'
 
     - job: ValidateScripts
       displayName: 'Validar scripts'
