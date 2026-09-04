@@ -37,12 +37,14 @@ stages:
         - checkout: self
 
         - task: UseNode@1
+          name: NodeInstall
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
-            checkLatest: true
 
-        - script: npm install --no-audit --no-fund --ignore-scripts
+        - script: |
+            export PATH="$(NodeInstall.nodeToolPath):$PATH"
+            npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
 
         - script: |
@@ -50,7 +52,9 @@ stages:
             echo "src/server.js encontrado"
           displayName: 'Validar archivo principal'
 
-        - script: node --check src/server.js
+        - script: |
+            export PATH="$(NodeInstall.nodeToolPath):$PATH"
+            node --check src/server.js
           displayName: 'Validar sintaxis JavaScript'
 
 # ============================================================
@@ -70,15 +74,19 @@ stages:
         - checkout: self
 
         - task: UseNode@1
+          name: NodeInstall
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
-            checkLatest: true
 
-        - script: npm install --no-audit --no-fund --ignore-scripts
+        - script: |
+            export PATH="$(NodeInstall.nodeToolPath):$PATH"
+            npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
 
-        - script: npm test -- --coverage
+        - script: |
+            export PATH="$(NodeInstall.nodeToolPath):$PATH"
+            npm test -- --coverage
           displayName: 'Ejecutar pruebas unitarias (Jest)'
 
     - job: ValidateScripts
@@ -89,19 +97,21 @@ stages:
         - checkout: self
 
         - task: UseNode@1
+          name: NodeInstall
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
-            checkLatest: true
 
-        - script: npm install --no-audit --no-fund --ignore-scripts
+        - script: |
+            export PATH="$(NodeInstall.nodeToolPath):$PATH"
+            npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
 
-        - script: node --check scripts/validar-sql.js
-          displayName: 'Validar validar-sql.js'
-
-        - script: node --check scripts/seed.js
-          displayName: 'Validar seed.js'
+        - script: |
+            export PATH="$(NodeInstall.nodeToolPath):$PATH"
+            node --check scripts/validar-sql.js
+            node --check scripts/seed.js
+          displayName: 'Validar scripts'
 
 # ============================================================
 # STAGE 3 - PACKAGE
@@ -120,16 +130,16 @@ stages:
         - checkout: self
 
         - task: UseNode@1
+          name: NodeInstall
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
-            checkLatest: true
 
-        - script: npm install --no-audit --no-fund --ignore-scripts
-          displayName: 'Instalar dependencias'
-
-        - script: npm prune --production
-          displayName: 'Eliminar dependencias de desarrollo'
+        - script: |
+            export PATH="$(NodeInstall.nodeToolPath):$PATH"
+            npm install --no-audit --no-fund --ignore-scripts
+            npm prune --production
+          displayName: 'Instalar y limpiar dependencias'
 
         - script: |
             tar -czf "$(ARTIFACT_NAME)" package.json package-lock.json src scripts
