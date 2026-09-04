@@ -41,7 +41,9 @@ stages:
           inputs:
             versionSpec: '$(NODE_VERSION)'
 
-        - script: npm install --no-audit --no-fund --ignore-scripts
+        - script: |
+            export PATH=$NODEKEY_PATH:$PATH
+            npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
 
         - script: |
@@ -73,10 +75,13 @@ stages:
           inputs:
             versionSpec: '$(NODE_VERSION)'
 
-        - script: npm install --no-audit --no-fund --ignore-scripts
+        - script: |
+            node -v
+            npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
 
-        - script: npm test -- --coverage
+        - script: |
+            npx jest --runInBand --coverage
           displayName: 'Ejecutar pruebas unitarias'
 
     - job: ValidateScripts
