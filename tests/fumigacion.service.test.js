@@ -1,51 +1,87 @@
-﻿jest.mock("mssql", () => {
-  const mRequest = { input: jest.fn().mockReturnThis(), query: jest.fn() };
-  const mTransaction = { begin: jest.fn(), commit: jest.fn(), rollback: jest.fn() };
-  return {
-    ConnectionPool: jest.fn().mockImplementation(() => ({ connect: jest.fn().mockResolvedValue({}) })),
-    Transaction: jest.fn().mockImplementation(() => mTransaction),
-    Request: jest.fn().mockImplementation(() => mRequest),
-    NVarChar: "NVarChar",
-    Int: "Int",
-    Decimal: jest.fn()
-  };
-});
-
-jest.mock("../src/config/db", () => ({
-  sql: require("mssql"),
-  getPool: jest.fn().mockResolvedValue({})
+﻿jest.mock("../src/models/Producto", () => ({
+  findById: jest.fn(),
 }));
 
-const sql = require("mssql");
-const { registrarFumigacion } = require("../src/services/fumigacion.service");
+jest.mock("../src/models/Fumigacion", () => ({
+  create: jest.fn(),
+}));
 
-describe("HU05 + HU09: registrarFumigacion con Azure SQL (mockeado)", () => {
-  test("descuenta el stock y registra la fumigación en una transacción", async () => {
-    const requestInstance = new sql.Request();
-    requestInstance.query
-      .mockResolvedValueOnce({ recordset: [{ Id: 1, Nombre: "Fungicida X", StockLitros: 20 }] })
-      .mockResolvedValueOnce({})
-      .mockResolvedValueOnce({ recordset: [{ Id: 99, Fecha: new Date() }] });
+const Producto = require("../src/models/Producto");
+const Fumigacion = require("../src/models/Fumigacion");
 
-    sql.Request.mockImplementation(() => requestInstance);
+const {
+  registrarFumigacion,
+} = require("../src/services/fumigacion.service");
+
+describe("HU05 + HU09: registrarFumigacion", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("descuenta el stock y registra la fumigación", async () => {
+    const producto = {
+      _id: "producto-1",
+      nombre: "Fungicida X",
+      stockLitros: 20,
+      save: jest.fn().mockResolvedValue(true),
+    };
+
+    const fumigacion = {
+      _id: "fumigacion-99",
+      fecha: new Date(),
+    };
+
+    Producto.findById.mockResolvedValue(producto);
+    Fumigacion.create.mockResolvedValue(fumigacion);
 
     const registro = await registrarFumigacion({
-      productoId: 1, litrosAplicados: 2, categoria: "polvoso", responsable: "operario"
+      productoId: "producto-1",
+      litrosAplicados: 2,
+      categoria: "polvoso",
+      responsable: "operario",
+    });
+
+    expect(Producto.findById).toHaveBeenCalledWith("producto-1");
+
+    expect(producto.stockLitros).toBe(18);
+    expect(producto.save).toHaveBeenCalledTimes(1);
+
+    expect(Fumigacion.create).toHaveBeenCalledWith({
+      productoId: "producto-1",
+      categoria: "polvoso",
+      litrosAplicados: 2,
+      responsable: "operario",
+      stockRestante: 18,
     });
 
     expect(registro.stockRestante).toBe(18);
     expect(registro.productoNombre).toBe("Fungicida X");
+    expect(registro.categoria).toBe("polvoso");
+    expect(registro.litrosAplicados).toBe(2);
+    expect(registro.responsable).toBe("operario");
+    expect(registro.id).toBe("fumigacion-99");
   });
 
-  test("hace rollback si el stock es insuficiente", async () => {
-    const requestInstance = new sql.Request();
-    requestInstance.query
-      .mockResolvedValueOnce({ recordset: [{ Id: 1, Nombre: "Fungicida X", StockLitros: 1 }] });
+  test("rechaza la fumigación si el stock es insuficiente", async () => {
+    const producto = {
+      _id: "producto-1",
+      nombre: "Fungicida X",
+      stockLitros: 1,
+      save: jest.fn(),
+    };
 
-    sql.Request.mockImplementation(() => requestInstance);
+    Producto.findById.mockResolvedValue(producto);
 
     await expect(
-      registrarFumigacion({ productoId: 1, litrosAplicados: 99, categoria: "polvoso", responsable: "operario" })
+      registrarFumigacion({
+        productoId: "producto-1",
+        litrosAplicados: 99,
+        categoria: "polvoso",
+        responsable: "operario",
+      })
     ).rejects.toThrow("Stock insuficiente");
+
+    expect(producto.save).not.toHaveBeenCalled();
+    expect(Fumigacion.create).not.toHaveBeenCalled();
   });
 });
