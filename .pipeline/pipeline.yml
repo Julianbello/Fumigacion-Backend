@@ -256,3 +256,5 @@ deploy:
 
       ./scripts/deploy.sh prod
     displayName: 'Desplegar en PROD'
+
+    sw
