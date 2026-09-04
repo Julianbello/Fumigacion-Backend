@@ -40,8 +40,9 @@ stages:
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
+            checkLatest: true
 
-        - script: npm install --no-audit --no-fund
+        - script: npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
 
         - script: |
@@ -72,12 +73,13 @@ stages:
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
+            checkLatest: true
 
-        - script: npm install --no-audit --no-fund
+        - script: npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
 
         - script: npm test -- --coverage
-          displayName: 'Ejecutar pruebas unitarias'
+          displayName: 'Ejecutar pruebas unitarias (Jest)'
 
     - job: ValidateScripts
       displayName: 'Validar scripts'
@@ -90,8 +92,9 @@ stages:
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
+            checkLatest: true
 
-        - script: npm install --no-audit --no-fund
+        - script: npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
 
         - script: node --check scripts/validar-sql.js
@@ -120,8 +123,9 @@ stages:
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
+            checkLatest: true
 
-        - script: npm install --no-audit --no-fund
+        - script: npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
 
         - script: npm prune --production
