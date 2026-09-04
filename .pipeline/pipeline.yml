@@ -1,5 +1,4 @@
-﻿```yaml
-# .pipeline/pipeline.yml
+﻿# .pipeline/pipeline.yml
 # Azure DevOps CI/CD - Sistema de Control de Fumigación
 
 trigger:
@@ -23,20 +22,14 @@ variables:
 # ============================================================
 
 stages:
-
 - stage: Compile
   displayName: 'Compilación'
-
   jobs:
-
   - job: CompileApp
     displayName: 'Compilar aplicación'
-
     pool:
       vmImage: 'ubuntu-latest'
-
     steps:
-
     - checkout: self
 
     - task: NodeTool@0
@@ -44,14 +37,11 @@ stages:
       inputs:
         versionSpec: '$(NODE_VERSION)'
 
-    - script: |
-        npm ci
+    - script: npm ci
       displayName: 'Instalar dependencias'
 
-    - script: |
-        npm run build
+    - script: npm run build
       displayName: 'Compilar aplicación'
-
 
 # ============================================================
 # STAGE 2 - QUALITY GATES
@@ -59,24 +49,16 @@ stages:
 
 - stage: QualityGates
   displayName: 'Quality Gates'
-
   dependsOn: Compile
   condition: succeeded()
 
   jobs:
 
-  # ----------------------------------------------------------
-  # LINT
-  # ----------------------------------------------------------
-
   - job: Lint
     displayName: 'Lint'
-
     pool:
       vmImage: 'ubuntu-latest'
-
     steps:
-
     - checkout: self
 
     - task: NodeTool@0
@@ -84,27 +66,18 @@ stages:
       inputs:
         versionSpec: '$(NODE_VERSION)'
 
-    - script: |
-        npm ci
+    - script: npm ci
       displayName: 'Instalar dependencias'
 
-    - script: |
-        npm run lint
+    - script: npm run lint
       displayName: 'Ejecutar ESLint'
 
 
-  # ----------------------------------------------------------
-  # ANÁLISIS ESTÁTICO
-  # ----------------------------------------------------------
-
   - job: StaticAnalysis
     displayName: 'Análisis estático'
-
     pool:
       vmImage: 'ubuntu-latest'
-
     steps:
-
     - checkout: self
 
     - task: NodeTool@0
@@ -112,8 +85,7 @@ stages:
       inputs:
         versionSpec: '$(NODE_VERSION)'
 
-    - script: |
-        npm ci
+    - script: npm ci
       displayName: 'Instalar dependencias'
 
     - script: |
@@ -123,18 +95,11 @@ stages:
       displayName: 'Ejecutar SonarQube'
 
 
-  # ----------------------------------------------------------
-  # PRUEBAS UNITARIAS
-  # ----------------------------------------------------------
-
   - job: UnitTests
     displayName: 'Pruebas unitarias'
-
     pool:
       vmImage: 'ubuntu-latest'
-
     steps:
-
     - checkout: self
 
     - task: NodeTool@0
@@ -142,27 +107,18 @@ stages:
       inputs:
         versionSpec: '$(NODE_VERSION)'
 
-    - script: |
-        npm ci
+    - script: npm ci
       displayName: 'Instalar dependencias'
 
-    - script: |
-        npm test -- --ci --coverage
+    - script: npm test -- --ci --coverage
       displayName: 'Ejecutar pruebas unitarias'
 
 
-  # ----------------------------------------------------------
-  # VALIDACIÓN SQL
-  # ----------------------------------------------------------
-
   - job: ValidateSQL
     displayName: 'Validar esquema SQL'
-
     pool:
       vmImage: 'ubuntu-latest'
-
     steps:
-
     - checkout: self
 
     - task: NodeTool@0
@@ -170,20 +126,16 @@ stages:
       inputs:
         versionSpec: '$(NODE_VERSION)'
 
-    - script: |
-        npm ci
+    - script: npm ci
       displayName: 'Instalar dependencias'
 
-    - script: |
-        npm install --no-save sql-parser-cst
+    - script: npm install --no-save sql-parser-cst
       displayName: 'Instalar sql-parser-cst'
 
-    - script: |
-        node scripts/validar-sql.js scripts/schema.sql
+    - script: node scripts/validar-sql.js scripts/schema.sql
       displayName: 'Validar schema.sql'
 
-    - script: |
-        node scripts/validar-sql.js scripts/seed.sql
+    - script: node scripts/validar-sql.js scripts/seed.sql
       displayName: 'Validar seed.sql'
 
 
@@ -193,20 +145,16 @@ stages:
 
 - stage: Package
   displayName: 'Empaquetado'
-
   dependsOn: QualityGates
   condition: succeeded()
 
   jobs:
-
   - job: PackageApp
     displayName: 'Crear paquete de aplicación'
-
     pool:
       vmImage: 'ubuntu-latest'
 
     steps:
-
     - checkout: self
 
     - task: NodeTool@0
@@ -214,12 +162,10 @@ stages:
       inputs:
         versionSpec: '$(NODE_VERSION)'
 
-    - script: |
-        npm ci
+    - script: npm ci
       displayName: 'Instalar dependencias'
 
-    - script: |
-        npm prune --production
+    - script: npm prune --production
       displayName: 'Eliminar dependencias de desarrollo'
 
     - script: |
@@ -244,24 +190,19 @@ stages:
 
 - stage: DeployDev
   displayName: 'Deploy DEV'
-
   dependsOn: Package
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
 
   jobs:
-
   - deployment: DeployDevelopment
     displayName: 'Desplegar en DEV'
-
     environment: 'dev'
-
     pool:
       vmImage: 'ubuntu-latest'
 
     strategy:
       runOnce:
         deploy:
-
           steps:
 
           - checkout: self
@@ -269,8 +210,7 @@ stages:
           - download: current
             artifact: fumigacion-backend
 
-          - script: |
-              chmod +x ./scripts/deploy.sh
+          - script: chmod +x ./scripts/deploy.sh
             displayName: 'Dar permisos al script'
 
           - script: |
@@ -279,9 +219,9 @@ stages:
             displayName: 'Desplegar en DEV'
 
           - script: |
-              echo "Verificando conexión a Azure SQL (DEV)..."
+              echo "Verificando aplicación DEV..."
               curl -f "$(DEV_URL)/health"
-            displayName: 'Verificar Azure SQL DEV'
+            displayName: 'Verificar DEV'
 
 
 # ============================================================
@@ -290,24 +230,19 @@ stages:
 
 - stage: DeployQA
   displayName: 'Deploy QA'
-
   dependsOn: DeployDev
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
 
   jobs:
-
   - deployment: DeployQuality
     displayName: 'Desplegar en QA'
-
     environment: 'qa'
-
     pool:
       vmImage: 'ubuntu-latest'
 
     strategy:
       runOnce:
         deploy:
-
           steps:
 
           - checkout: self
@@ -315,8 +250,7 @@ stages:
           - download: current
             artifact: fumigacion-backend
 
-          - script: |
-              chmod +x ./scripts/deploy.sh
+          - script: chmod +x ./scripts/deploy.sh
             displayName: 'Dar permisos al script'
 
           - script: |
@@ -326,19 +260,17 @@ stages:
 
           - script: |
               curl -f "$(QA_URL)/health"
-            displayName: 'Verificar Azure SQL QA'
+            displayName: 'Verificar QA'
 
           - task: NodeTool@0
             displayName: 'Instalar Node.js'
             inputs:
               versionSpec: '$(NODE_VERSION)'
 
-          - script: |
-              npm ci
+          - script: npm ci
             displayName: 'Instalar dependencias'
 
-          - script: |
-              npm run test:integration
+          - script: npm run test:integration
             displayName: 'Pruebas de integración'
 
 
@@ -348,24 +280,19 @@ stages:
 
 - stage: DeployProd
   displayName: 'Deploy PROD'
-
-  dependsOn: DeployQA
+  dependsOn: Package
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
 
   jobs:
-
   - deployment: DeployProduction
     displayName: 'Desplegar en PROD'
-
     environment: 'prod'
-
     pool:
       vmImage: 'ubuntu-latest'
 
     strategy:
       runOnce:
         deploy:
-
           steps:
 
           - checkout: self
@@ -373,8 +300,7 @@ stages:
           - download: current
             artifact: fumigacion-backend
 
-          - script: |
-              chmod +x ./scripts/deploy.sh
+          - script: chmod +x ./scripts/deploy.sh
             displayName: 'Dar permisos al script'
 
           - script: |
@@ -384,5 +310,4 @@ stages:
 
           - script: |
               curl -f "$(PROD_URL)/health"
-            displayName: 'Verificar Azure SQL PROD'
-```
+            displayName: 'Verificar PROD'
