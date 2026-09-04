@@ -17,7 +17,7 @@ pr:
       - develop
 
 variables:
-  NODE_VERSION: '20.x'
+  NODE_VERSION: '22.x'
   ARTIFACT_NAME: 'app-fumigacion-backend-$(Build.BuildId).tar.gz'
 
 stages:
@@ -41,7 +41,7 @@ stages:
           inputs:
             versionSpec: '$(NODE_VERSION)'
 
-        - script: npm ci
+        - script: npm install
           displayName: 'Instalar dependencias'
 
         - script: |
@@ -73,7 +73,7 @@ stages:
           inputs:
             versionSpec: '$(NODE_VERSION)'
 
-        - script: npm ci
+        - script: npm install
           displayName: 'Instalar dependencias'
 
         - script: npm test -- --coverage
@@ -91,7 +91,7 @@ stages:
           inputs:
             versionSpec: '$(NODE_VERSION)'
 
-        - script: npm ci
+        - script: npm install
           displayName: 'Instalar dependencias'
 
         - script: node --check scripts/validar-sql.js
@@ -121,7 +121,7 @@ stages:
           inputs:
             versionSpec: '$(NODE_VERSION)'
 
-        - script: npm ci
+        - script: npm install
           displayName: 'Instalar dependencias'
 
         - script: npm prune --production
