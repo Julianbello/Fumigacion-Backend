@@ -36,7 +36,7 @@ stages:
       steps:
         - checkout: self
 
-        - task: NodeTool@0
+        - task: UseNode@1
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
@@ -68,7 +68,7 @@ stages:
       steps:
         - checkout: self
 
-        - task: NodeTool@0
+        - task: UseNode@1
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
@@ -86,7 +86,7 @@ stages:
       steps:
         - checkout: self
 
-        - task: NodeTool@0
+        - task: UseNode@1
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
@@ -116,7 +116,7 @@ stages:
       steps:
         - checkout: self
 
-        - task: NodeTool@0
+        - task: UseNode@1
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
