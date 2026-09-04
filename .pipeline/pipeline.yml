@@ -41,7 +41,7 @@ stages:
           inputs:
             versionSpec: '$(NODE_VERSION)'
 
-        - script: npm install
+        - script: npm install --no-audit --no-fund
           displayName: 'Instalar dependencias'
 
         - script: |
@@ -73,7 +73,7 @@ stages:
           inputs:
             versionSpec: '$(NODE_VERSION)'
 
-        - script: npm install
+        - script: npm install --no-audit --no-fund
           displayName: 'Instalar dependencias'
 
         - script: npm test -- --coverage
@@ -91,7 +91,7 @@ stages:
           inputs:
             versionSpec: '$(NODE_VERSION)'
 
-        - script: npm install
+        - script: npm install --no-audit --no-fund
           displayName: 'Instalar dependencias'
 
         - script: node --check scripts/validar-sql.js
@@ -121,7 +121,7 @@ stages:
           inputs:
             versionSpec: '$(NODE_VERSION)'
 
-        - script: npm install
+        - script: npm install --no-audit --no-fund
           displayName: 'Instalar dependencias'
 
         - script: npm prune --production
