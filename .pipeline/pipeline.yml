@@ -36,10 +36,11 @@ stages:
       steps:
         - checkout: self
 
-        - task: NodeTool@0
+        - task: UseNode@1
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
+            checkLatest: true
 
         - script: npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
@@ -68,10 +69,11 @@ stages:
       steps:
         - checkout: self
 
-        - task: NodeTool@0
+        - task: UseNode@1
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
+            checkLatest: true
 
         - script: npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
@@ -86,10 +88,11 @@ stages:
       steps:
         - checkout: self
 
-        - task: NodeTool@0
+        - task: UseNode@1
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
+            checkLatest: true
 
         - script: npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
@@ -116,10 +119,11 @@ stages:
       steps:
         - checkout: self
 
-        - task: NodeTool@0
+        - task: UseNode@1
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
+            checkLatest: true
 
         - script: npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
@@ -148,7 +152,10 @@ stages:
   condition: |
     and(
       succeeded(),
-      eq(variables['Build.SourceBranch'], 'refs/heads/develop')
+      or(
+        eq(variables['Build.SourceBranch'], 'refs/heads/develop'),
+        eq(variables['Build.SourceBranch'], 'refs/heads/main')
+      )
     )
   jobs:
     - deployment: DeployDevelopment
