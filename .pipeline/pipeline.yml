@@ -36,15 +36,12 @@ stages:
       steps:
         - checkout: self
 
-        - task: UseNode@1
-          name: UseNodeTask
+        - task: NodeTool@0
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
 
-        - script: |
-            export PATH="$(UseNodeTask.nodeToolPath):$PATH"
-            npm install --no-audit --no-fund --ignore-scripts
+        - script: npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
 
         - script: |
@@ -52,9 +49,7 @@ stages:
             echo "src/server.js encontrado"
           displayName: 'Validar archivo principal'
 
-        - script: |
-            export PATH="$(UseNodeTask.nodeToolPath):$PATH"
-            node --check src/server.js
+        - script: node --check src/server.js
           displayName: 'Validar sintaxis JavaScript'
 
 # ============================================================
@@ -73,21 +68,15 @@ stages:
       steps:
         - checkout: self
 
-        - task: UseNode@1
-          name: UseNodeTask
+        - task: NodeTool@0
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
 
-        - script: |
-            export PATH="$(UseNodeTask.nodeToolPath):$PATH"
-            npm install --no-audit --no-fund --ignore-scripts
+        - script: npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
 
-        - script: |
-            export PATH="$(UseNodeTask.nodeToolPath):$PATH"
-            node -v
-            npx jest --runInBand --coverage
+        - script: npm test -- --coverage
           displayName: 'Ejecutar pruebas unitarias (Jest)'
 
     - job: ValidateScripts
@@ -97,22 +86,19 @@ stages:
       steps:
         - checkout: self
 
-        - task: UseNode@1
-          name: UseNodeTask
+        - task: NodeTool@0
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
 
-        - script: |
-            export PATH="$(UseNodeTask.nodeToolPath):$PATH"
-            npm install --no-audit --no-fund --ignore-scripts
+        - script: npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
 
-        - script: |
-            export PATH="$(UseNodeTask.nodeToolPath):$PATH"
-            node --check scripts/validar-sql.js
-            node --check scripts/seed.js
-          displayName: 'Validar scripts'
+        - script: node --check scripts/validar-sql.js
+          displayName: 'Validar validar-sql.js'
+
+        - script: node --check scripts/seed.js
+          displayName: 'Validar seed.js'
 
 # ============================================================
 # STAGE 3 - PACKAGE
@@ -130,17 +116,16 @@ stages:
       steps:
         - checkout: self
 
-        - task: UseNode@1
-          name: UseNodeTask
+        - task: NodeTool@0
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
 
-        - script: |
-            export PATH="$(UseNodeTask.nodeToolPath):$PATH"
-            npm install --no-audit --no-fund --ignore-scripts
-            npm prune --production
-          displayName: 'Instalar y limpiar dependencias'
+        - script: npm install --no-audit --no-fund --ignore-scripts
+          displayName: 'Instalar dependencias'
+
+        - script: npm prune --production
+          displayName: 'Eliminar dependencias de desarrollo'
 
         - script: |
             tar -czf "$(ARTIFACT_NAME)" package.json package-lock.json src scripts
