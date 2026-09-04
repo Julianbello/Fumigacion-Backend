@@ -72,16 +72,21 @@ stages:
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
+            checkLatest: true
 
         - script: npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
 
-        # Usamos npm test directamente aprovechando que UseNode@1 ya está activo
-        - task: Npm@1
+        - bash: |
+            # Buscar dinámicamente la ruta de Node 22 instalada en el agente y sobrescribir el PATH
+            NODE22_BIN=$(find /opt/hostedtoolcache/node -maxdepth 2 -name "bin" | grep "22\." | head -n 1)
+            if [ -n "$NODE22_BIN" ]; then
+              export PATH="$NODE22_BIN:$PATH"
+            fi
+            echo "Versión exacta de Node usada:"
+            node -v
+            npm test -- --coverage
           displayName: 'Ejecutar pruebas unitarias (Jest)'
-          inputs:
-            command: 'custom'
-            customCommand: 'test -- --coverage'
 
     - job: ValidateScripts
       displayName: 'Validar scripts'
