@@ -1,0 +1,108 @@
+﻿# .pipeline/pipeline.yml — fumigacion-backend
+# Pipeline CI/CD homologado — Sistema de Control de Fumigación
+
+variables:
+  NODE_VERSION: "20"
+  ARTIFACT_NAME: "app-fumigacion-backend-${CI_COMMIT_SHORT_SHA}.tar.gz"
+
+stages:
+  - compile
+  - quality_gates
+  - package
+  - deploy_dev
+  - deploy_qa
+  - deploy_prod
+
+compile:
+  stage: compile
+  image: node:${NODE_VERSION}
+  script:
+    - npm ci
+    - npm run build
+  artifacts:
+    paths:
+      - node_modules/
+    expire_in: 1h
+
+lint:
+  stage: quality_gates
+  image: node:${NODE_VERSION}
+  script:
+    - npm run lint
+  allow_failure: false
+
+static_analysis:
+  stage: quality_gates
+  image: node:${NODE_VERSION}
+  script:
+    - npx sonar-scanner
+      -Dsonar.projectKey=fumigacion-backend
+      -Dsonar.qualitygate.wait=true
+  allow_failure: false
+
+unit_tests:
+  stage: quality_gates
+  image: node:${NODE_VERSION}
+  script:
+    - npm test -- --ci --coverage
+  coverage: '/Lines\s*:\s*(\d+\.?\d*)%/'
+  artifacts:
+    reports:
+      junit: junit.xml
+  allow_failure: false
+
+validate_sql_schema:
+  stage: quality_gates
+  image: node:${NODE_VERSION}
+  script:
+    - npm install --no-save sql-parser-cst
+    - node scripts/validar-sql.js scripts/schema.sql
+    - node scripts/validar-sql.js scripts/seed.sql
+  allow_failure: false
+
+package:
+  stage: package
+  image: node:${NODE_VERSION}
+  script:
+    - npm prune --production
+    - tar -czf ${ARTIFACT_NAME} package.json src scripts node_modules
+  artifacts:
+    paths:
+      - ${ARTIFACT_NAME}
+    expire_in: 7d
+  needs: ["lint", "static_analysis", "unit_tests", "validate_sql_schema"]
+
+deploy_dev:
+  stage: deploy_dev
+  script:
+    - echo "Desplegando ${ARTIFACT_NAME} en entorno DEV"
+    - ./scripts/deploy.sh dev
+    - echo "Verificando conexion a Azure SQL (DEV)..."
+    - curl -f "$DEV_URL/health" || (echo "Backend DEV no conecto a Azure SQL" && exit 1)
+  environment: { name: dev }
+  rules:
+    - if: "$CI_COMMIT_BRANCH == \"develop\""
+
+deploy_qa:
+  stage: deploy_qa
+  script:
+    - echo "Desplegando ${ARTIFACT_NAME} en entorno QA"
+    - ./scripts/deploy.sh qa
+    - curl -f "$QA_URL/health" || (echo "Backend QA no conecto a Azure SQL" && exit 1)
+    - npm run test:integration
+  environment: { name: qa }
+  rules:
+    - if: "$CI_COMMIT_BRANCH == \"develop\""
+  needs: ["deploy_dev"]
+
+deploy_prod:
+  stage: deploy_prod
+  script:
+    - echo "Desplegando ${ARTIFACT_NAME} en entorno PROD"
+    - ./scripts/deploy.sh prod
+    - curl -f "$PROD_URL/health" || (echo "Backend PROD no conecto a Azure SQL" && exit 1)
+  environment: { name: prod }
+  when: manual
+  rules:
+    - if: "$CI_COMMIT_BRANCH == \"main\""
+  needs: ["deploy_qa"]
