@@ -37,10 +37,14 @@ stages:
         - checkout: self
 
         - task: UseNode@1
+          name: NodeTask
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
-            checkLatest: true
+
+        - script: |
+            echo "##vso[task.prependpath]$(NodeTask.nodeToolPath)"
+          displayName: 'Registrar Node.js en PATH'
 
         - script: npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
@@ -70,15 +74,19 @@ stages:
         - checkout: self
 
         - task: UseNode@1
+          name: NodeTask
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
-            checkLatest: true
+
+        - script: |
+            echo "##vso[task.prependpath]$(NodeTask.nodeToolPath)"
+          displayName: 'Registrar Node.js en PATH'
 
         - script: npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
 
-        - script: npm test -- --coverage
+        - script: npx jest --runInBand --coverage
           displayName: 'Ejecutar pruebas unitarias (Jest)'
 
     - job: ValidateScripts
@@ -89,19 +97,22 @@ stages:
         - checkout: self
 
         - task: UseNode@1
+          name: NodeTask
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
-            checkLatest: true
+
+        - script: |
+            echo "##vso[task.prependpath]$(NodeTask.nodeToolPath)"
+          displayName: 'Registrar Node.js en PATH'
 
         - script: npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
 
-        - script: node --check scripts/validar-sql.js
-          displayName: 'Validar validar-sql.js'
-
-        - script: node --check scripts/seed.js
-          displayName: 'Validar seed.js'
+        - script: |
+            node --check scripts/validar-sql.js
+            node --check scripts/seed.js
+          displayName: 'Validar scripts'
 
 # ============================================================
 # STAGE 3 - PACKAGE
@@ -120,16 +131,19 @@ stages:
         - checkout: self
 
         - task: UseNode@1
+          name: NodeTask
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
-            checkLatest: true
 
-        - script: npm install --no-audit --no-fund --ignore-scripts
-          displayName: 'Instalar dependencias'
+        - script: |
+            echo "##vso[task.prependpath]$(NodeTask.nodeToolPath)"
+          displayName: 'Registrar Node.js en PATH'
 
-        - script: npm prune --production
-          displayName: 'Eliminar dependencias de desarrollo'
+        - script: |
+            npm install --no-audit --no-fund --ignore-scripts
+            npm prune --production
+          displayName: 'Instalar y limpiar dependencias'
 
         - script: |
             tar -czf "$(ARTIFACT_NAME)" package.json package-lock.json src scripts
