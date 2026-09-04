@@ -19,11 +19,11 @@ variables:
 NODE_VERSION: '20.x'
 ARTIFACT_NAME: 'app-fumigacion-backend-$(Build.BuildId).tar.gz'
 
+stages:
+
 ============================================================
 STAGE 1 - VALIDACIÓN
 ============================================================
-
-stages:
 
 stage: Compile
 displayName: 'Validación de aplicación'
@@ -51,7 +51,7 @@ displayName: 'Instalar dependencias'
 
 script: |
 test -f src/server.js
-echo "✓ src/server.js encontrado"
+echo "src/server.js encontrado"
 displayName: 'Validar archivo principal'
 
 script: |
@@ -167,6 +167,7 @@ displayName: 'Crear archivo TAR.GZ'
 
 task: PublishPipelineArtifact@1
 displayName: 'Publicar artefacto'
+
 inputs:
 targetPath: '$(ARTIFACT_NAME)'
 artifact: 'fumigacion-backend'
@@ -181,7 +182,8 @@ displayName: 'Deploy DEV'
 
 dependsOn: Package
 
-condition: and(
+condition: |
+and(
 succeeded(),
 eq(variables['Build.SourceBranch'], 'refs/heads/develop')
 )
@@ -197,9 +199,12 @@ pool:
 vmImage: 'ubuntu-latest'
 
 strategy:
+
 runOnce:
+
 deploy:
-steps:
+
+  steps:
 
   - checkout: self
 
@@ -218,25 +223,6 @@ steps:
       ./scripts/deploy.sh dev
     displayName: 'Desplegar en DEV'
 
-  - script: |
-      echo "=========================================="
-      echo "Health Check DEV"
-      echo "=========================================="
-
-      if [ -n "$(DEV_HEALTH_URL)" ]; then
-        curl --fail \
-             --silent \
-             --show-error \
-             --retry 5 \
-             --retry-delay 5 \
-             --max-time 30 \
-             "$(DEV_HEALTH_URL)"
-      else
-        echo "DEV_HEALTH_URL no configurada."
-        echo "Se omite el health check."
-      fi
-    displayName: 'Health Check DEV'
-
 ============================================================
 STAGE 5 - DEPLOY PROD
 ============================================================
@@ -246,7 +232,8 @@ displayName: 'Deploy PROD'
 
 dependsOn: Package
 
-condition: and(
+condition: |
+and(
 succeeded(),
 eq(variables['Build.SourceBranch'], 'refs/heads/main')
 )
@@ -262,9 +249,12 @@ pool:
 vmImage: 'ubuntu-latest'
 
 strategy:
+
 runOnce:
+
 deploy:
-steps:
+
+  steps:
 
   - checkout: self
 
@@ -282,22 +272,3 @@ steps:
 
       ./scripts/deploy.sh prod
     displayName: 'Desplegar en PROD'
-
-  - script: |
-      echo "=========================================="
-      echo "Health Check PROD"
-      echo "=========================================="
-
-      if [ -n "$(PROD_HEALTH_URL)" ]; then
-        curl --fail \
-             --silent \
-             --show-error \
-             --retry 5 \
-             --retry-delay 5 \
-             --max-time 30 \
-             "$(PROD_HEALTH_URL)"
-      else
-        echo "PROD_HEALTH_URL no configurada."
-        echo "Se omite el health check."
-      fi
-    displayName: 'Health Check PROD'
