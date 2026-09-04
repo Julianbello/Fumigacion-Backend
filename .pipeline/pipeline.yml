@@ -37,13 +37,13 @@ stages:
         - checkout: self
 
         - task: UseNode@1
-          name: NodeTask
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
 
         - script: |
-            echo "##vso[task.prependpath]$(NodeTask.nodeToolPath)"
+            echo "##vso[task.prependpath]$(Agent.ToolsDirectory)/node/22.*/x64/bin"
+            echo "##vso[task.prependpath]$(Agent.ToolsDirectory)/node/22.*/x64"
           displayName: 'Registrar Node.js en PATH'
 
         - script: npm install --no-audit --no-fund --ignore-scripts
@@ -74,13 +74,13 @@ stages:
         - checkout: self
 
         - task: UseNode@1
-          name: NodeTask
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
 
         - script: |
-            echo "##vso[task.prependpath]$(NodeTask.nodeToolPath)"
+            echo "##vso[task.prependpath]$(Agent.ToolsDirectory)/node/22.*/x64/bin"
+            echo "##vso[task.prependpath]$(Agent.ToolsDirectory)/node/22.*/x64"
           displayName: 'Registrar Node.js en PATH'
 
         - script: npm install --no-audit --no-fund --ignore-scripts
@@ -97,13 +97,13 @@ stages:
         - checkout: self
 
         - task: UseNode@1
-          name: NodeTask
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
 
         - script: |
-            echo "##vso[task.prependpath]$(NodeTask.nodeToolPath)"
+            echo "##vso[task.prependpath]$(Agent.ToolsDirectory)/node/22.*/x64/bin"
+            echo "##vso[task.prependpath]$(Agent.ToolsDirectory)/node/22.*/x64"
           displayName: 'Registrar Node.js en PATH'
 
         - script: npm install --no-audit --no-fund --ignore-scripts
@@ -131,13 +131,13 @@ stages:
         - checkout: self
 
         - task: UseNode@1
-          name: NodeTask
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
 
         - script: |
-            echo "##vso[task.prependpath]$(NodeTask.nodeToolPath)"
+            echo "##vso[task.prependpath]$(Agent.ToolsDirectory)/node/22.*/x64/bin"
+            echo "##vso[task.prependpath]$(Agent.ToolsDirectory)/node/22.*/x64"
           displayName: 'Registrar Node.js en PATH'
 
         - script: |
