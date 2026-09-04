@@ -145,7 +145,11 @@ stages:
 - stage: DeployDev
   displayName: 'Deploy DEV'
   dependsOn: Package
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
+  condition: |
+    and(
+      succeeded(),
+      eq(variables['Build.SourceBranch'], 'refs/heads/develop')
+    )
   jobs:
     - deployment: DeployDevelopment
       displayName: 'Desplegar en DEV'
@@ -178,7 +182,11 @@ stages:
 - stage: DeployProd
   displayName: 'Deploy PROD'
   dependsOn: Package
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  condition: |
+    and(
+      succeeded(),
+      eq(variables['Build.SourceBranch'], 'refs/heads/main')
+    )
   jobs:
     - deployment: DeployProduction
       displayName: 'Desplegar en PROD'
