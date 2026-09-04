@@ -1,4 +1,5 @@
-﻿# .pipeline/pipeline.yml
+﻿```yaml
+# .pipeline/pipeline.yml
 # Azure DevOps CI/CD - Sistema de Control de Fumigación
 
 trigger:
@@ -58,6 +59,7 @@ stages:
 
 - stage: QualityGates
   displayName: 'Quality Gates'
+
   dependsOn: Compile
   condition: succeeded()
 
@@ -244,10 +246,7 @@ stages:
   displayName: 'Deploy DEV'
 
   dependsOn: Package
-  condition: and(
-    succeeded(),
-    eq(variables['Build.SourceBranch'], 'refs/heads/develop')
-  )
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
 
   jobs:
 
@@ -261,7 +260,6 @@ stages:
 
     strategy:
       runOnce:
-
         deploy:
 
           steps:
@@ -294,11 +292,7 @@ stages:
   displayName: 'Deploy QA'
 
   dependsOn: DeployDev
-
-  condition: and(
-    succeeded(),
-    eq(variables['Build.SourceBranch'], 'refs/heads/develop')
-  )
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
 
   jobs:
 
@@ -312,7 +306,6 @@ stages:
 
     strategy:
       runOnce:
-
         deploy:
 
           steps:
@@ -357,11 +350,7 @@ stages:
   displayName: 'Deploy PROD'
 
   dependsOn: DeployQA
-
-  condition: and(
-    succeeded(),
-    eq(variables['Build.SourceBranch'], 'refs/heads/main')
-  )
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
 
   jobs:
 
@@ -375,7 +364,6 @@ stages:
 
     strategy:
       runOnce:
-
         deploy:
 
           steps:
@@ -397,3 +385,4 @@ stages:
           - script: |
               curl -f "$(PROD_URL)/health"
             displayName: 'Verificar Azure SQL PROD'
+```
