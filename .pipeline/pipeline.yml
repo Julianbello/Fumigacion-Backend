@@ -26,7 +26,7 @@ stages:
 # STAGE 1 - VALIDACIÓN
 # ============================================================
 
-* stage: Compile
+- stage: Compile
   displayName: 'Validación de aplicación'
   jobs:
     - job: CompileApp
@@ -57,7 +57,7 @@ stages:
 # STAGE 2 - QUALITY GATES
 # ============================================================
 
-* stage: QualityGates
+- stage: QualityGates
   displayName: 'Quality Gates'
   dependsOn: Compile
   condition: succeeded()
@@ -107,7 +107,7 @@ stages:
 # STAGE 3 - PACKAGE
 # ============================================================
 
-* stage: Package
+- stage: Package
   displayName: 'Empaquetado'
   dependsOn: QualityGates
   condition: succeeded()
@@ -146,7 +146,7 @@ stages:
 # STAGE 4 - DEPLOY DEV
 # ============================================================
 
-* stage: DeployDev
+- stage: DeployDev
   displayName: 'Deploy DEV'
   dependsOn: Package
   condition: |
@@ -183,7 +183,7 @@ stages:
 # STAGE 5 - DEPLOY PROD
 # ============================================================
 
-* stage: DeployProd
+- stage: DeployProd
   displayName: 'Deploy PROD'
   dependsOn: Package
   condition: |
