@@ -1,260 +1,205 @@
-﻿Azure DevOps CI/CD
-Sistema de Control de Fumigación - Backend
-Version: 1.0.0
+﻿# ============================================================
+# Azure DevOps CI/CD
+# Sistema de Control de Fumigación - Backend
+# Version: 1.0.0
+# ============================================================
 
 trigger:
-
-main
-develop
+  branches:
+    include:
+      - main
+      - develop
 
 pr:
-
-main
-develop
+  branches:
+    include:
+      - main
+      - develop
 
 variables:
-NODE_VERSION: '20.x'
-ARTIFACT_NAME: 'app-fumigacion-backend-$(Build.BuildId).tar.gz'
+  NODE_VERSION: '20.x'
+  ARTIFACT_NAME: 'app-fumigacion-backend-$(Build.BuildId).tar.gz'
 
 stages:
 
-============================================================
-STAGE 1 - VALIDACIÓN
-============================================================
-
-stage: Compile
-displayName: 'Validación de aplicación'
-
-jobs:
-
-job: CompileApp
-displayName: 'Validar backend Node.js'
-
-pool:
-vmImage: 'ubuntu-latest'
-
-steps:
-
-checkout: self
-
-task: NodeTool@0
-displayName: 'Instalar Node.js'
-inputs:
-versionSpec: '$(NODE_VERSION)'
-
-script: npm ci
-displayName: 'Instalar dependencias'
-
-script: |
-test -f src/server.js
-echo "src/server.js encontrado"
-displayName: 'Validar archivo principal'
-
-script: node --check src/server.js
-displayName: 'Validar sintaxis JavaScript'
-
-============================================================
-STAGE 2 - QUALITY GATES
-============================================================
-
-stage: QualityGates
-displayName: 'Quality Gates'
-
-dependsOn: Compile
-condition: succeeded()
-
-jobs:
-
-job: UnitTests
-displayName: 'Pruebas unitarias'
-
-pool:
-vmImage: 'ubuntu-latest'
-
-steps:
-
-checkout: self
-
-task: NodeTool@0
-displayName: 'Instalar Node.js'
-inputs:
-versionSpec: '$(NODE_VERSION)'
-
-script: npm ci
-displayName: 'Instalar dependencias'
-
-script: npm test -- --coverage
-displayName: 'Ejecutar pruebas unitarias'
-
-job: ValidateScripts
-displayName: 'Validar scripts'
-
-pool:
-vmImage: 'ubuntu-latest'
-
-steps:
-
-checkout: self
-
-task: NodeTool@0
-displayName: 'Instalar Node.js'
-inputs:
-versionSpec: '$(NODE_VERSION)'
-
-script: npm ci
-displayName: 'Instalar dependencias'
-
-script: node --check scripts/validar-sql.js
-displayName: 'Validar validar-sql.js'
-
-script: node --check scripts/seed.js
-displayName: 'Validar seed.js'
-
-============================================================
-STAGE 3 - PACKAGE
-============================================================
-
-stage: Package
-displayName: 'Empaquetado'
-
-dependsOn: QualityGates
-condition: succeeded()
-
-jobs:
-
-job: PackageApp
-displayName: 'Crear paquete de aplicación'
-
-pool:
-vmImage: 'ubuntu-latest'
-
-steps:
-
-checkout: self
-
-task: NodeTool@0
-displayName: 'Instalar Node.js'
-inputs:
-versionSpec: '$(NODE_VERSION)'
-
-script: npm ci
-displayName: 'Instalar dependencias'
-
-script: npm prune --production
-displayName: 'Eliminar dependencias de desarrollo'
-
-script: |
-tar -czf "$(ARTIFACT_NAME)"
-package.json
-package-lock.json
-src
-scripts
-displayName: 'Crear archivo TAR.GZ'
-
-task: PublishPipelineArtifact@1
-displayName: 'Publicar artefacto'
-
-inputs:
-targetPath: '$(ARTIFACT_NAME)'
-artifact: 'fumigacion-backend'
-publishLocation: 'pipeline'
-
-============================================================
-STAGE 4 - DEPLOY DEV
-============================================================
-
-stage: DeployDev
-displayName: 'Deploy DEV'
-
-dependsOn: Package
-
-condition: |
-and(
-succeeded(),
-eq(variables['Build.SourceBranch'], 'refs/heads/develop')
-)
-
-jobs:
-
-deployment: DeployDevelopment
-displayName: 'Desplegar en DEV'
-
-environment: 'dev'
-
-pool:
-vmImage: 'ubuntu-latest'
-
-strategy:
-
-runOnce:
-
-deploy:
-
-  steps:
-
-  - checkout: self
-
-  - download: current
-    artifact: fumigacion-backend
-
-  - script: chmod +x ./scripts/deploy.sh
-    displayName: 'Dar permisos al script'
-
-  - script: |
-      echo "=========================================="
-      echo "Desplegando aplicación en DEV"
-      echo "=========================================="
-
-      ./scripts/deploy.sh dev
-    displayName: 'Desplegar en DEV'
-
-============================================================
-STAGE 5 - DEPLOY PROD
-============================================================
-
-stage: DeployProd
-displayName: 'Deploy PROD'
-
-dependsOn: Package
-
-condition: |
-and(
-succeeded(),
-eq(variables['Build.SourceBranch'], 'refs/heads/main')
-)
-
-jobs:
-
-deployment: DeployProduction
-displayName: 'Desplegar en PROD'
-
-environment: 'prod'
-
-pool:
-vmImage: 'ubuntu-latest'
-
-strategy:
-
-runOnce:
-
-deploy:
-
-  steps:
-
-  - checkout: self
-
-  - download: current
-    artifact: fumigacion-backend
-
-  - script: chmod +x ./scripts/deploy.sh
-    displayName: 'Dar permisos al script'
-
-  - script: |
-      echo "=========================================="
-      echo "Desplegando aplicación en PROD"
-      echo "=========================================="
-
-      ./scripts/deploy.sh prod
-    displayName: 'Desplegar en PROD'
-
-    sw
+# ============================================================
+# STAGE 1 - VALIDACIÓN
+# ============================================================
+
+- stage: Compile
+  displayName: 'Validación de aplicación'
+  jobs:
+    - job: CompileApp
+      displayName: 'Validar backend Node.js'
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - checkout: self
+
+        - task: NodeTool@0
+          displayName: 'Instalar Node.js'
+          inputs:
+            versionSpec: '$(NODE_VERSION)'
+
+        - script: npm ci
+          displayName: 'Instalar dependencias'
+
+        - script: |
+            test -f src/server.js
+            echo "src/server.js encontrado"
+          displayName: 'Validar archivo principal'
+
+        - script: node --check src/server.js
+          displayName: 'Validar sintaxis JavaScript'
+
+# ============================================================
+# STAGE 2 - QUALITY GATES
+# ============================================================
+
+- stage: QualityGates
+  displayName: 'Quality Gates'
+  dependsOn: Compile
+  condition: succeeded()
+  jobs:
+    - job: UnitTests
+      displayName: 'Pruebas unitarias'
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - checkout: self
+
+        - task: NodeTool@0
+          displayName: 'Instalar Node.js'
+          inputs:
+            versionSpec: '$(NODE_VERSION)'
+
+        - script: npm ci
+          displayName: 'Instalar dependencias'
+
+        - script: npm test -- --coverage
+          displayName: 'Ejecutar pruebas unitarias'
+
+    - job: ValidateScripts
+      displayName: 'Validar scripts'
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - checkout: self
+
+        - task: NodeTool@0
+          displayName: 'Instalar Node.js'
+          inputs:
+            versionSpec: '$(NODE_VERSION)'
+
+        - script: npm ci
+          displayName: 'Instalar dependencias'
+
+        - script: node --check scripts/validar-sql.js
+          displayName: 'Validar validar-sql.js'
+
+        - script: node --check scripts/seed.js
+          displayName: 'Validar seed.js'
+
+# ============================================================
+# STAGE 3 - PACKAGE
+# ============================================================
+
+- stage: Package
+  displayName: 'Empaquetado'
+  dependsOn: QualityGates
+  condition: succeeded()
+  jobs:
+    - job: PackageApp
+      displayName: 'Crear paquete de aplicación'
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - checkout: self
+
+        - task: NodeTool@0
+          displayName: 'Instalar Node.js'
+          inputs:
+            versionSpec: '$(NODE_VERSION)'
+
+        - script: npm ci
+          displayName: 'Instalar dependencias'
+
+        - script: npm prune --production
+          displayName: 'Eliminar dependencias de desarrollo'
+
+        - script: |
+            tar -czf "$(ARTIFACT_NAME)" package.json package-lock.json src scripts
+          displayName: 'Crear archivo TAR.GZ'
+
+        - task: PublishPipelineArtifact@1
+          displayName: 'Publicar artefacto'
+          inputs:
+            targetPath: '$(ARTIFACT_NAME)'
+            artifact: 'fumigacion-backend'
+            publishLocation: 'pipeline'
+
+# ============================================================
+# STAGE 4 - DEPLOY DEV
+# ============================================================
+
+- stage: DeployDev
+  displayName: 'Deploy DEV'
+  dependsOn: Package
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
+  jobs:
+    - deployment: DeployDevelopment
+      displayName: 'Desplegar en DEV'
+      environment: 'dev'
+      pool:
+        vmImage: 'ubuntu-latest'
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - checkout: self
+
+              - download: current
+                artifact: fumigacion-backend
+
+              - script: chmod +x ./scripts/deploy.sh
+                displayName: 'Dar permisos al script'
+
+              - script: |
+                  echo "=========================================="
+                  echo "Desplegando aplicación en DEV"
+                  echo "=========================================="
+                  ./scripts/deploy.sh dev
+                displayName: 'Desplegar en DEV'
+
+# ============================================================
+# STAGE 5 - DEPLOY PROD
+# ============================================================
+
+- stage: DeployProd
+  displayName: 'Deploy PROD'
+  dependsOn: Package
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+    - deployment: DeployProduction
+      displayName: 'Desplegar en PROD'
+      environment: 'prod'
+      pool:
+        vmImage: 'ubuntu-latest'
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - checkout: self
+
+              - download: current
+                artifact: fumigacion-backend
+
+              - script: chmod +x ./scripts/deploy.sh
+                displayName: 'Dar permisos al script'
+
+              - script: |
+                  echo "=========================================="
+                  echo "Desplegando aplicación en PROD"
+                  echo "=========================================="
+                  ./scripts/deploy.sh prod
+                displayName: 'Desplegar en PROD'
