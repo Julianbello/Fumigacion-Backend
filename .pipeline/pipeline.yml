@@ -41,12 +41,7 @@ stages:
           inputs:
             versionSpec: '$(NODE_VERSION)'
 
-        - script: |
-            echo "##vso[task.prependpath]$(Agent.ToolsDirectory)/node/22.*/x64/bin"
-            echo "##vso[task.prependpath]$(Agent.ToolsDirectory)/node/22.*/x64"
-          displayName: 'Registrar Node.js en PATH'
-
-        - script: npm install --no-audit --no-fund --ignore-scripts
+        - script: npm install
           displayName: 'Instalar dependencias'
 
         - script: |
@@ -78,16 +73,11 @@ stages:
           inputs:
             versionSpec: '$(NODE_VERSION)'
 
-        - script: |
-            echo "##vso[task.prependpath]$(Agent.ToolsDirectory)/node/22.*/x64/bin"
-            echo "##vso[task.prependpath]$(Agent.ToolsDirectory)/node/22.*/x64"
-          displayName: 'Registrar Node.js en PATH'
-
-        - script: npm install --no-audit --no-fund --ignore-scripts
+        - script: npm install
           displayName: 'Instalar dependencias'
 
-        - script: npx jest --runInBand --coverage
-          displayName: 'Ejecutar pruebas unitarias (Jest)'
+        - script: npm test -- --coverage
+          displayName: 'Ejecutar pruebas unitarias'
 
     - job: ValidateScripts
       displayName: 'Validar scripts'
@@ -101,18 +91,14 @@ stages:
           inputs:
             versionSpec: '$(NODE_VERSION)'
 
-        - script: |
-            echo "##vso[task.prependpath]$(Agent.ToolsDirectory)/node/22.*/x64/bin"
-            echo "##vso[task.prependpath]$(Agent.ToolsDirectory)/node/22.*/x64"
-          displayName: 'Registrar Node.js en PATH'
-
-        - script: npm install --no-audit --no-fund --ignore-scripts
+        - script: npm install
           displayName: 'Instalar dependencias'
 
-        - script: |
-            node --check scripts/validar-sql.js
-            node --check scripts/seed.js
-          displayName: 'Validar scripts'
+        - script: node --check scripts/validar-sql.js
+          displayName: 'Validar validar-sql.js'
+
+        - script: node --check scripts/seed.js
+          displayName: 'Validar seed.js'
 
 # ============================================================
 # STAGE 3 - PACKAGE
@@ -135,15 +121,11 @@ stages:
           inputs:
             versionSpec: '$(NODE_VERSION)'
 
-        - script: |
-            echo "##vso[task.prependpath]$(Agent.ToolsDirectory)/node/22.*/x64/bin"
-            echo "##vso[task.prependpath]$(Agent.ToolsDirectory)/node/22.*/x64"
-          displayName: 'Registrar Node.js en PATH'
+        - script: npm install
+          displayName: 'Instalar dependencias'
 
-        - script: |
-            npm install --no-audit --no-fund --ignore-scripts
-            npm prune --production
-          displayName: 'Instalar y limpiar dependencias'
+        - script: npm prune --production
+          displayName: 'Eliminar dependencias de desarrollo'
 
         - script: |
             tar -czf "$(ARTIFACT_NAME)" package.json package-lock.json src scripts
@@ -163,11 +145,7 @@ stages:
 - stage: DeployDev
   displayName: 'Deploy DEV'
   dependsOn: Package
-  condition: |
-    and(
-      succeeded(),
-      eq(variables['Build.SourceBranch'], 'refs/heads/develop')
-    )
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
   jobs:
     - deployment: DeployDevelopment
       displayName: 'Desplegar en DEV'
@@ -200,11 +178,7 @@ stages:
 - stage: DeployProd
   displayName: 'Deploy PROD'
   dependsOn: Package
-  condition: |
-    and(
-      succeeded(),
-      eq(variables['Build.SourceBranch'], 'refs/heads/main')
-    )
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
   jobs:
     - deployment: DeployProduction
       displayName: 'Desplegar en PROD'
