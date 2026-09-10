@@ -75,6 +75,13 @@ stages:
             versionSpec: '$(NODE_VERSION)'
             checkLatest: true
 
+        - script: |
+            which node
+            node --version
+            which npm
+            npm --version
+          displayName: 'Diagnóstico de Node'
+
         - script: npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
 
