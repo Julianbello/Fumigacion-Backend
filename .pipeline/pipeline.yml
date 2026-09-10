@@ -36,11 +36,10 @@ stages:
       steps:
         - checkout: self
 
-        - task: UseNode@1
+        - task: NodeTool@0
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
-            checkLatest: true
 
         - script: npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
@@ -69,11 +68,10 @@ stages:
       steps:
         - checkout: self
 
-        - task: UseNode@1
+        - task: NodeTool@0
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
-            checkLatest: true
 
         - script: |
             which node
@@ -95,11 +93,10 @@ stages:
       steps:
         - checkout: self
 
-        - task: UseNode@1
+        - task: NodeTool@0
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
-            checkLatest: true
 
         - script: npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
@@ -126,11 +123,10 @@ stages:
       steps:
         - checkout: self
 
-        - task: UseNode@1
+        - task: NodeTool@0
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
-            checkLatest: true
 
         - script: npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
