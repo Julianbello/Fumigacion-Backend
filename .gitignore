@@ -4,3 +4,5 @@ coverage/
 dist/
 .vercel
 .env*
+
+husky-results.log

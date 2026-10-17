@@ -1,0 +1,23 @@
+LOG="husky-results.log"
+echo "===== Husky pre-commit: $(date) =====" >> $LOG
+
+echo "[1/2] Lint..." | tee -a $LOG
+if npm run lint >> $LOG 2>&1; then
+  echo "Lint: OK" | tee -a $LOG
+else
+  echo "Lint: FALLO (ver husky-results.log)" | tee -a $LOG
+  echo "RESULTADO: commit bloqueado" >> $LOG
+  exit 1
+fi
+
+echo "[2/2] Tests..." | tee -a $LOG
+if npm test >> $LOG 2>&1; then
+  echo "Tests: OK" | tee -a $LOG
+else
+  echo "Tests: FALLO (ver husky-results.log)" | tee -a $LOG
+  echo "RESULTADO: commit bloqueado" >> $LOG
+  exit 1
+fi
+
+echo "RESULTADO: Husky se ejecuto bien, commit permitido" | tee -a $LOG
+echo "" >> $LOG
