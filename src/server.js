@@ -1,6 +1,7 @@
 ﻿require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const mongoose = require("mongoose");
 const authRoutes = require("./routes/auth.routes");
 const fumigacionRoutes = require("./routes/fumigacion.routes");
 const { conectarDB } = require("./config/db");
@@ -16,8 +17,13 @@ conectarDB().catch((err) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/fumigaciones", fumigacionRoutes);
 
+// Responde "ok" solo si MongoDB está realmente conectado (estado 1).
 app.get("/health", (req, res) => {
-  res.json({ status: "ok", db: "MongoDB conectado" });
+  const conectado = mongoose.connection.readyState === 1;
+  res.status(conectado ? 200 : 503).json({
+    status: conectado ? "ok" : "error",
+    db: conectado ? "MongoDB conectado" : "MongoDB sin conexion",
+  });
 });
 
 // Solo escucha cuando se ejecuta con "node src/server.js" / "npm start"
