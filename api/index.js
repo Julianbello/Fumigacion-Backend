@@ -10,7 +10,7 @@ let cached = global.mongoose || { conn: null, promise: null };
 async function conectarDB() {
   if (cached.conn) return cached.conn;
   if (!cached.promise) {
-    const uri = process.env.MONGO_URI || "mongodb+srv://julianbellotiven_db_user:5ZfgLlQsdeYTAbxY@cluster0.ltmtv9n.mongodb.net/fumigaciones_db?retryWrites=true&w=majority";
+    const uri = process.env.MONGO_URI;
     cached.promise = mongoose.connect(uri, { bufferCommands: false, serverSelectionTimeoutMS: 5000 }).then((m) => m);
   }
   try { cached.conn = await cached.promise; } catch (e) { cached.promise = null; throw e; }
@@ -50,14 +50,14 @@ app.post(/.*register$/, async (req, res) => {
   }
 });
 
-// Ruta de Login añadida
+// Ruta de Login aï¿½adida
 app.post(/.*login$/, async (req, res) => {
   try {
     const { username, password } = req.body || {};
     if (!username || !password) return res.status(400).json({ error: "Faltan datos" });
     const usuario = await User.findOne({ username, password });
-    if (!usuario) return res.status(401).json({ error: "Credenciales inválidas" });
-    return res.status(200).json({ message: "Inicio de sesión exitoso", user: username });
+    if (!usuario) return res.status(401).json({ error: "Credenciales invï¿½lidas" });
+    return res.status(200).json({ message: "Inicio de sesiï¿½n exitoso", user: username });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }

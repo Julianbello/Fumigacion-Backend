@@ -1,7 +1,7 @@
 ﻿# ============================================================
 # Azure DevOps CI/CD
 # Sistema de Control de Fumigación - Backend
-# Version: 1.0.0
+# Despliegue en Azure App Service (Linux, Node.js)
 # ============================================================
 
 trigger:
@@ -18,13 +18,12 @@ pr:
 
 variables:
   NODE_VERSION: '22.x'
-  ARTIFACT_NAME: 'app-fumigacion-backend-$(Build.BuildId).tar.gz'
+  ARTIFACT_NAME: 'app-fumigacion-backend-$(Build.BuildId).zip'
+  AZURE_SERVICE_CONNECTION: 'azure-fumigacion'
+  WEBAPP_DEV: 'fumigacion-backend-julianbello'
+  WEBAPP_PROD: 'fumigacion-backend-julianbello'
 
 stages:
-
-# ============================================================
-# STAGE 1 - VALIDACIÓN
-# ============================================================
 
 - stage: Compile
   displayName: 'Validación de aplicación'
@@ -52,10 +51,6 @@ stages:
         - script: node --check src/server.js
           displayName: 'Validar sintaxis JavaScript'
 
-# ============================================================
-# STAGE 2 - QUALITY GATES
-# ============================================================
-
 - stage: QualityGates
   displayName: 'Quality Gates'
   dependsOn: Compile
@@ -72,13 +67,6 @@ stages:
           displayName: 'Instalar Node.js'
           inputs:
             versionSpec: '$(NODE_VERSION)'
-
-        - script: |
-            which node
-            node --version
-            which npm
-            npm --version
-          displayName: 'Diagnóstico de Node'
 
         - script: npm install --no-audit --no-fund --ignore-scripts
           displayName: 'Instalar dependencias'
@@ -107,10 +95,6 @@ stages:
         - script: node --check scripts/seed.js
           displayName: 'Validar seed.js'
 
-# ============================================================
-# STAGE 3 - PACKAGE
-# ============================================================
-
 - stage: Package
   displayName: 'Empaquetado'
   dependsOn: QualityGates
@@ -123,31 +107,17 @@ stages:
       steps:
         - checkout: self
 
-        - task: NodeTool@0
-          displayName: 'Instalar Node.js'
-          inputs:
-            versionSpec: '$(NODE_VERSION)'
-
-        - script: npm install --no-audit --no-fund --ignore-scripts
-          displayName: 'Instalar dependencias'
-
-        - script: npm prune --production
-          displayName: 'Eliminar dependencias de desarrollo'
-
         - script: |
-            tar -czf "$(ARTIFACT_NAME)" package.json package-lock.json src scripts
-          displayName: 'Crear archivo TAR.GZ'
+            zip -qr "$(Build.ArtifactStagingDirectory)/$(ARTIFACT_NAME)" package.json package-lock.json src scripts
+            ls -lh "$(Build.ArtifactStagingDirectory)"
+          displayName: 'Crear archivo ZIP'
 
         - task: PublishPipelineArtifact@1
           displayName: 'Publicar artefacto'
           inputs:
-            targetPath: '$(ARTIFACT_NAME)'
+            targetPath: '$(Build.ArtifactStagingDirectory)/$(ARTIFACT_NAME)'
             artifact: 'fumigacion-backend'
             publishLocation: 'pipeline'
-
-# ============================================================
-# STAGE 4 - DEPLOY DEV
-# ============================================================
 
 - stage: DeployDev
   displayName: 'Deploy DEV'
@@ -170,24 +140,14 @@ stages:
         runOnce:
           deploy:
             steps:
-              - checkout: self
-
-              - download: current
-                artifact: fumigacion-backend
-
-              - script: chmod +x ./scripts/deploy.sh
-                displayName: 'Dar permisos al script'
-
-              - script: |
-                  echo "=========================================="
-                  echo "Desplegando aplicación en DEV"
-                  echo "=========================================="
-                  ./scripts/deploy.sh dev
-                displayName: 'Desplegar en DEV'
-
-# ============================================================
-# STAGE 5 - DEPLOY PROD
-# ============================================================
+              - task: AzureWebApp@1
+                displayName: 'Desplegar en App Service (DEV)'
+                inputs:
+                  azureSubscription: '$(AZURE_SERVICE_CONNECTION)'
+                  appType: 'webAppLinux'
+                  appName: '$(WEBAPP_DEV)'
+                  runtimeStack: 'NODE|22-lts'
+                  package: '$(Pipeline.Workspace)/fumigacion-backend/*.zip'
 
 - stage: DeployProd
   displayName: 'Deploy PROD'
@@ -207,17 +167,11 @@ stages:
         runOnce:
           deploy:
             steps:
-              - checkout: self
-
-              - download: current
-                artifact: fumigacion-backend
-
-              - script: chmod +x ./scripts/deploy.sh
-                displayName: 'Dar permisos al script'
-
-              - script: |
-                  echo "=========================================="
-                  echo "Desplegando aplicación en PROD"
-                  echo "=========================================="
-                  ./scripts/deploy.sh prod
-                displayName: 'Desplegar en PROD'
+              - task: AzureWebApp@1
+                displayName: 'Desplegar en App Service (PROD)'
+                inputs:
+                  azureSubscription: '$(AZURE_SERVICE_CONNECTION)'
+                  appType: 'webAppLinux'
+                  appName: '$(WEBAPP_PROD)'
+                  runtimeStack: 'NODE|22-lts'
+                  package: '$(Pipeline.Workspace)/fumigacion-backend/*.zip'

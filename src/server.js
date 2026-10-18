@@ -9,7 +9,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-conectarDB();
+conectarDB().catch((err) => {
+  console.error("No se pudo conectar a la base de datos:", err.message);
+});
 
 app.use("/api/auth", authRoutes);
 app.use("/api/fumigaciones", fumigacionRoutes);
@@ -18,10 +20,12 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok", db: "MongoDB conectado" });
 });
 
-if (process.env.NODE_ENV !== "production") {
+// Solo escucha cuando se ejecuta con "node src/server.js" / "npm start"
+// (App Service y local). En Vercel se importa como módulo y no entra aquí.
+if (require.main === module) {
   const PORT = process.env.PORT || 4000;
   app.listen(PORT, () => {
-    console.log(`Servidor local escuchando en el puerto ${PORT}`);
+    console.log(`Servidor escuchando en el puerto ${PORT}`);
   });
 }
 
