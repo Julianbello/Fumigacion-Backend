@@ -1,44 +1,58 @@
 ﻿const express = require("express");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const Usuario = require("../models/Usuario");
 const router = express.Router();
-const mongoose = require("mongoose");
 
-const UserSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true },
-  password: { type: String, required: true }
-});
+const USERNAME_VALIDO = /^[a-zA-Z0-9._-]{3,30}$/;
 
-const User = mongoose.models.User || mongoose.model("User", UserSchema);
-
-// POST /api/auth/register
-router.post("/register", async (req, res) => {
+router.post("/login", async (req, res) => {
+  const { username, password } = req.body || {};
+  if (typeof username !== "string" || typeof password !== "string" || !username || !password) {
+    return res.status(400).json({ error: "Usuario y contraseña requeridos" });
+  }
   try {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      return res.status(400).json({ error: "Faltan usuario o contraseña" });
-    }
-    const existe = await User.findOne({ username });
-    if (existe) {
-      return res.status(400).json({ error: "El usuario ya existe" });
-    }
-    const nuevoUsuario = new User({ username, password });
-    await nuevoUsuario.save();
-    return res.status(201).json({ message: "Usuario creado exitosamente" });
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
+    const usuario = await Usuario.findOne({ username });
+    if (!usuario) return res.status(401).json({ error: "Credenciales inválidas" });
+
+    const esValida = await bcrypt.compare(password, usuario.passwordHash);
+    if (!esValida) return res.status(401).json({ error: "Credenciales inválidas" });
+
+    const token = jwt.sign(
+      { id: usuario._id, username: usuario.username, role: usuario.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "4h" }
+    );
+    res.json({ token, role: usuario.role });
+  } catch (err) {
+    res.status(500).json({ error: "Error de servidor", detalle: err.message });
   }
 });
 
-// POST /api/auth/login
-router.post("/login", async (req, res) => {
+// Registro público: siempre crea usuarios con rol OPERARIO (el rol nunca viene del cliente).
+router.post("/register", async (req, res) => {
+  const { username, password } = req.body || {};
+  if (typeof username !== "string" || typeof password !== "string" || !username || !password) {
+    return res.status(400).json({ error: "Usuario y contraseña requeridos" });
+  }
+  if (!USERNAME_VALIDO.test(username)) {
+    return res.status(400).json({
+      error: "El usuario debe tener entre 3 y 30 caracteres (letras, números, punto, guion o guion bajo)"
+    });
+  }
+  if (password.length < 8 || password.length > 72) {
+    return res.status(400).json({ error: "La contraseña debe tener entre 8 y 72 caracteres" });
+  }
   try {
-    const { username, password } = req.body;
-    const user = await User.findOne({ username, password });
-    if (!user) {
-      return res.status(401).json({ error: "Credenciales inválidas" });
-    }
-    return res.json({ token: "token_demo_123", username: user.username });
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
+    const existe = await Usuario.findOne({ username });
+    if (existe) return res.status(409).json({ error: "El usuario ya existe" });
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    await Usuario.create({ username, passwordHash, role: "OPERARIO" });
+    res.status(201).json({ mensaje: "Usuario creado correctamente" });
+  } catch (err) {
+    if (err.code === 11000) return res.status(409).json({ error: "El usuario ya existe" });
+    res.status(500).json({ error: "Error de servidor" });
   }
 });
 

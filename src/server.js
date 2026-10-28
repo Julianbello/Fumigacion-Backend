@@ -4,6 +4,7 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const authRoutes = require("./routes/auth.routes");
 const fumigacionRoutes = require("./routes/fumigacion.routes");
+const productoRoutes = require("./routes/producto.routes");
 const { conectarDB } = require("./config/db");
 
 const app = express();
@@ -16,6 +17,7 @@ conectarDB().catch((err) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/fumigaciones", fumigacionRoutes);
+app.use("/api/productos", productoRoutes);
 
 // Responde "ok" solo si MongoDB está realmente conectado (estado 1).
 app.get("/health", (req, res) => {

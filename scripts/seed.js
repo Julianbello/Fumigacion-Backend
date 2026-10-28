@@ -2,41 +2,37 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const Usuario = require("../src/models/Usuario");
-const Producto = require("../src/models/Producto");
 
-async function sembrarDatos() {
-  try {
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log("Conectado a MongoDB Atlas...");
+async function main() {
+  const [username, password, role = "ADMIN"] = process.argv.slice(2);
 
-    // Limpiar colecciones anteriores
-    await Usuario.deleteMany({});
-    await Producto.deleteMany({});
-
-    // Hashear contraseñas iniciales
-    const passAdmin = await bcrypt.hash("admin123", 10);
-    const passOperario = await bcrypt.hash("operario123", 10);
-
-    // Crear usuarios de prueba
-    await Usuario.insertMany([
-      { username: "admin", passwordHash: passAdmin, role: "ADMIN" },
-      { username: "operario", passwordHash: passOperario, role: "OPERARIO" }
-    ]);
-    console.log("✅ Usuarios iniciales creados (admin / operario)");
-
-    // Crear productos de prueba
-    await Producto.insertMany([
-      { nombre: "Fungicida X", categoria: "polvoso", dosisMlPorLitro: 3, stockLitros: 20 },
-      { nombre: "Acaricida Y", categoria: "trips", dosisMlPorLitro: 5, stockLitros: 15 }
-    ]);
-    console.log("✅ Productos de prueba creados");
-
-    console.log("🚀 ¡Sembrado de datos completado exitosamente!");
-    process.exit(0);
-  } catch (err) {
-    console.error("❌ Error al sembrar datos:", err.message);
+  if (!username || !password) {
+    console.log("Uso: node scripts/reset-usuario.js USUARIO CLAVE [ADMIN|OPERARIO]");
     process.exit(1);
   }
+  if (!["ADMIN", "OPERARIO"].includes(role)) {
+    console.log("El rol debe ser ADMIN u OPERARIO");
+    process.exit(1);
+  }
+  if (!process.env.MONGO_URI) {
+    console.log("Falta la variable MONGO_URI");
+    process.exit(1);
+  }
+
+  await mongoose.connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 8000 });
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  await Usuario.findOneAndUpdate(
+    { username },
+    { username, passwordHash, role },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
+
+  console.log(`Listo: usuario "${username}" (${role}) creado o actualizado.`);
+  await mongoose.disconnect();
 }
 
-sembrarDatos();
+main().catch((err) => {
+  console.error("Error:", err.message);
+  process.exit(1);
+});
