@@ -4,9 +4,11 @@ const jwt = require("jsonwebtoken");
 const Usuario = require("../models/Usuario");
 const router = express.Router();
 
+const USERNAME_VALIDO = /^[a-zA-Z0-9._-]{3,30}$/;
+
 router.post("/login", async (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) {
+  const { username, password } = req.body || {};
+  if (typeof username !== "string" || typeof password !== "string" || !username || !password) {
     return res.status(400).json({ error: "Usuario y contraseña requeridos" });
   }
   try {
@@ -24,6 +26,33 @@ router.post("/login", async (req, res) => {
     res.json({ token, role: usuario.role });
   } catch (err) {
     res.status(500).json({ error: "Error de servidor", detalle: err.message });
+  }
+});
+
+// Registro público: siempre crea usuarios con rol OPERARIO (el rol nunca viene del cliente).
+router.post("/register", async (req, res) => {
+  const { username, password } = req.body || {};
+  if (typeof username !== "string" || typeof password !== "string" || !username || !password) {
+    return res.status(400).json({ error: "Usuario y contraseña requeridos" });
+  }
+  if (!USERNAME_VALIDO.test(username)) {
+    return res.status(400).json({
+      error: "El usuario debe tener entre 3 y 30 caracteres (letras, números, punto, guion o guion bajo)"
+    });
+  }
+  if (password.length < 8 || password.length > 72) {
+    return res.status(400).json({ error: "La contraseña debe tener entre 8 y 72 caracteres" });
+  }
+  try {
+    const existe = await Usuario.findOne({ username });
+    if (existe) return res.status(409).json({ error: "El usuario ya existe" });
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    await Usuario.create({ username, passwordHash, role: "OPERARIO" });
+    res.status(201).json({ mensaje: "Usuario creado correctamente" });
+  } catch (err) {
+    if (err.code === 11000) return res.status(409).json({ error: "El usuario ya existe" });
+    res.status(500).json({ error: "Error de servidor" });
   }
 });
 
