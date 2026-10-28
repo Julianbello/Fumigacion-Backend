@@ -22,7 +22,9 @@ variables:
   AZURE_SERVICE_CONNECTION: 'azure-fumigacion'
   WEBAPP_DEV: 'fumigacion-backend-julianbello'
   WEBAPP_PROD: 'fumigacion-backend-julianbello'
-
+  SONAR_SERVICE_CONNECTION: 'sonarcloud-fumigacion'
+  SONAR_ORGANIZATION: 'julianbello'
+  SONAR_PROJECT_KEY: 'Julianbello_Fumigacion-Backend'
 stages:
 
 - stage: Compile
@@ -75,6 +77,45 @@ stages:
           displayName: 'Ejecutar pruebas unitarias (Jest)'
 
     - job: ValidateScripts
+          - job: SonarCloud
+      displayName: 'Análisis de código (SonarCloud)'
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - checkout: self
+          fetchDepth: 0
+
+        - task: NodeTool@0
+          displayName: 'Instalar Node.js'
+          inputs:
+            versionSpec: '$(NODE_VERSION)'
+
+        - task: SonarCloudPrepare@4
+          displayName: 'SonarCloud: preparar análisis'
+          inputs:
+            SonarCloud: '$(SONAR_SERVICE_CONNECTION)'
+            organization: '$(SONAR_ORGANIZATION)'
+            scannerMode: 'cli'
+            configMode: 'manual'
+            cliProjectKey: '$(SONAR_PROJECT_KEY)'
+            cliProjectName: 'fumigacion-backend'
+            cliSources: 'src,api'
+
+        - script: npm install --no-audit --no-fund --ignore-scripts
+          displayName: 'Instalar dependencias'
+
+        - script: npm test -- --coverage
+          displayName: 'Pruebas con cobertura (para SonarCloud)'
+
+        - task: SonarCloudAnalyze@4
+          displayName: 'SonarCloud: analizar código'
+          inputs:
+            jdkversion: 'JAVA_HOME_17_X64'
+
+        - task: SonarCloudPublish@4
+          displayName: 'SonarCloud: publicar resultado del Quality Gate'
+          inputs:
+            pollingTimeoutSec: '300'
       displayName: 'Validar scripts'
       pool:
         vmImage: 'ubuntu-latest'
