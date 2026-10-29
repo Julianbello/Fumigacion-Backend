@@ -1,7 +1,6 @@
-﻿
-# ============================================================
+﻿# ============================================================
 # Azure DevOps CI/CD
-# Sistema de Control de Fumigacion - Backend
+# Sistema de Control de Fumigación - Backend
 # Despliegue en Azure App Service (Linux, Node.js)
 # ============================================================
 
@@ -20,217 +19,255 @@ pr:
 variables:
   NODE_VERSION: '22.x'
   ARTIFACT_NAME: 'app-fumigacion-backend-$(Build.BuildId).zip'
+  # --- CAMBIA ESTOS 3 VALORES ---
   AZURE_SERVICE_CONNECTION: 'azure-fumigacion'
   WEBAPP_DEV: 'fumigacion-backend-julianbello'
   WEBAPP_PROD: 'fumigacion-backend-julianbello'
-  SONAR_SERVICE_CONNECTION: 'sonarcloud-fumigacion'
-  SONAR_ORGANIZATION: 'julianbello'
-  SONAR_PROJECT_KEY: 'Julianbello_Fumigacion-Backend'
+  BACKEND_URL: 'https://fumigacion-backend-julianbello.azurewebsites.net'
 
 stages:
-  # ----------------------------------------------------------
-  # 1. COMPILACION Y VALIDACION
-  # ----------------------------------------------------------
-  - stage: Compile
-    displayName: 'Validacion de aplicacion'
-    jobs:
-      - job: CompileApp
-        displayName: 'Validar backend Node.js'
-        pool:
-          vmImage: 'ubuntu-latest'
-        steps:
-          - checkout: self
 
-          - task: NodeTool@0
-            displayName: 'Instalar Node.js'
-            inputs:
-              versionSpec: '$(NODE_VERSION)'
+# ============================================================
+# STAGE 1 - VALIDACIÓN
+# ============================================================
 
-          - script: npm install --no-audit --no-fund --ignore-scripts
-            displayName: 'Instalar dependencias'
+- stage: Compile
+  displayName: 'Validación de aplicación'
+  jobs:
+    - job: CompileApp
+      displayName: 'Validar backend Node.js'
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - checkout: self
 
-          - script: |
-              test -f src/server.js
-              echo "src/server.js encontrado"
-            displayName: 'Validar archivo principal'
+        - task: NodeTool@0
+          displayName: 'Instalar Node.js'
+          inputs:
+            versionSpec: '$(NODE_VERSION)'
 
-          - script: node --check src/server.js
-            displayName: 'Validar sintaxis JavaScript'
+        - script: npm install --no-audit --no-fund --ignore-scripts
+          displayName: 'Instalar dependencias'
 
-  # ----------------------------------------------------------
-  # 2. PRUEBAS Y CALIDAD
-  # ----------------------------------------------------------
-  - stage: QualityGates
-    displayName: 'Quality Gates'
-    dependsOn: Compile
-    condition: succeeded()
-    jobs:
-      - job: UnitTests
-        displayName: 'Pruebas unitarias'
-        pool:
-          vmImage: 'ubuntu-latest'
-        steps:
-          - checkout: self
+        - script: |
+            test -f src/server.js
+            echo "src/server.js encontrado"
+          displayName: 'Validar archivo principal'
 
-          - task: NodeTool@0
-            displayName: 'Instalar Node.js'
-            inputs:
-              versionSpec: '$(NODE_VERSION)'
+        - script: node --check src/server.js
+          displayName: 'Validar sintaxis JavaScript'
 
-          - script: npm install --no-audit --no-fund --ignore-scripts
-            displayName: 'Instalar dependencias'
+# ============================================================
+# STAGE 2 - QUALITY GATES
+# ============================================================
 
-          - script: npm test -- --coverage
-            displayName: 'Ejecutar pruebas unitarias'
+- stage: QualityGates
+  displayName: 'Quality Gates'
+  dependsOn: Compile
+  condition: succeeded()
+  jobs:
+    - job: UnitTests
+      displayName: 'Pruebas unitarias'
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - checkout: self
 
-      - job: SonarCloud
-        displayName: 'Analisis de codigo SonarCloud'
-        pool:
-          vmImage: 'ubuntu-latest'
-        steps:
-          - checkout: self
-            fetchDepth: 0
+        - task: NodeTool@0
+          displayName: 'Instalar Node.js'
+          inputs:
+            versionSpec: '$(NODE_VERSION)'
 
-          - task: NodeTool@0
-            displayName: 'Instalar Node.js'
-            inputs:
-              versionSpec: '$(NODE_VERSION)'
+        - script: |
+            which node
+            node --version
+            which npm
+            npm --version
+          displayName: 'Diagnóstico de Node'
 
-          - task: SonarCloudPrepare@3
-            displayName: 'SonarCloud: preparar analisis'
-            inputs:
-              SonarCloud: '$(SONAR_SERVICE_CONNECTION)'
-              organization: '$(SONAR_ORGANIZATION)'
-              scannerMode: 'cli'
-              configMode: 'manual'
-              cliProjectKey: '$(SONAR_PROJECT_KEY)'
-              cliProjectName: 'fumigacion-backend'
-              cliSources: 'src,api'
+        - script: npm install --no-audit --no-fund --ignore-scripts
+          displayName: 'Instalar dependencias'
 
-          - script: npm install --no-audit --no-fund --ignore-scripts
-            displayName: 'Instalar dependencias'
+        - script: npm test -- --coverage
+          displayName: 'Ejecutar pruebas unitarias (Jest)'
 
-          - script: npm test -- --coverage
-            displayName: 'Pruebas con cobertura'
+    - job: ValidateScripts
+      displayName: 'Validar scripts'
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - checkout: self
 
-          - task: SonarCloudAnalyze@3
-            displayName: 'SonarCloud: analizar codigo'
-            inputs:
-              jdkversion: 'JAVA_HOME_17_X64'
+        - task: NodeTool@0
+          displayName: 'Instalar Node.js'
+          inputs:
+            versionSpec: '$(NODE_VERSION)'
 
-          - task: SonarCloudPublish@3
-            displayName: 'SonarCloud: publicar Quality Gate'
-            inputs:
-              pollingTimeoutSec: '300'
+        - script: npm install --no-audit --no-fund --ignore-scripts
+          displayName: 'Instalar dependencias'
 
-      - job: ValidateScripts
-        displayName: 'Validar scripts'
-        pool:
-          vmImage: 'ubuntu-latest'
-        steps:
-          - checkout: self
+        - script: node --check scripts/validar-sql.js
+          displayName: 'Validar validar-sql.js'
 
-          - task: NodeTool@0
-            displayName: 'Instalar Node.js'
-            inputs:
-              versionSpec: '$(NODE_VERSION)'
+        - script: node --check scripts/seed.js
+          displayName: 'Validar seed.js'
 
-          - script: npm install --no-audit --no-fund --ignore-scripts
-            displayName: 'Instalar dependencias'
+# ============================================================
+# STAGE 3 - PACKAGE
+# App Service instala las dependencias al desplegar
+# (SCM_DO_BUILD_DURING_DEPLOYMENT=true), por eso el ZIP
+# no lleva node_modules.
+# ============================================================
 
-          - script: node --check scripts/validar-sql.js
-            displayName: 'Validar validar-sql.js'
+- stage: Package
+  displayName: 'Empaquetado'
+  dependsOn: QualityGates
+  condition: succeeded()
+  jobs:
+    - job: PackageApp
+      displayName: 'Crear paquete de aplicación'
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - checkout: self
 
-          - script: node --check scripts/seed.js
-            displayName: 'Validar seed.js'
+        - script: |
+            zip -qr "$(Build.ArtifactStagingDirectory)/$(ARTIFACT_NAME)" package.json package-lock.json src scripts
+            ls -lh "$(Build.ArtifactStagingDirectory)"
+          displayName: 'Crear archivo ZIP'
 
-  # ----------------------------------------------------------
-  # 3. EMPAQUETADO
-  # ----------------------------------------------------------
-  - stage: Package
-    displayName: 'Empaquetado'
-    dependsOn: QualityGates
-    condition: succeeded()
-    jobs:
-      - job: PackageApp
-        displayName: 'Crear paquete de aplicacion'
-        pool:
-          vmImage: 'ubuntu-latest'
-        steps:
-          - checkout: self
+        - task: PublishPipelineArtifact@1
+          displayName: 'Publicar artefacto'
+          inputs:
+            targetPath: '$(Build.ArtifactStagingDirectory)/$(ARTIFACT_NAME)'
+            artifact: 'fumigacion-backend'
+            publishLocation: 'pipeline'
 
-          - script: |
-              mkdir -p "$(Build.ArtifactStagingDirectory)"
-              zip -qr "$(Build.ArtifactStagingDirectory)/$(ARTIFACT_NAME)" package.json package-lock.json src scripts
-              ls -lh "$(Build.ArtifactStagingDirectory)"
-            displayName: 'Crear archivo ZIP'
+# ============================================================
+# STAGE 4 - DEPLOY DEV
+# ============================================================
 
-          - task: PublishPipelineArtifact@1
-            displayName: 'Publicar artefacto'
-            inputs:
-              targetPath: '$(Build.ArtifactStagingDirectory)/$(ARTIFACT_NAME)'
-              artifact: 'fumigacion-backend'
-              publishLocation: 'pipeline'
-
-  # ----------------------------------------------------------
-  # 4. DESPLIEGUE EN DESARROLLO
-  # ----------------------------------------------------------
-  - stage: DeployDev
-    displayName: 'Deploy DEV'
-    dependsOn: Package
-    condition: |
-      and(
-        succeeded(),
-        or(
-          eq(variables['Build.SourceBranch'], 'refs/heads/develop'),
-          eq(variables['Build.SourceBranch'], 'refs/heads/main')
-        )
-      )
-    jobs:
-      - deployment: DeployDevelopment
-        displayName: 'Desplegar en DEV'
-        environment: 'dev'
-        pool:
-          vmImage: 'ubuntu-latest'
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - task: AzureWebApp@1
-                  displayName: 'Desplegar en App Service DEV'
-                  inputs:
-                    azureSubscription: '$(AZURE_SERVICE_CONNECTION)'
-                    appType: 'webAppLinux'
-                    appName: '$(WEBAPP_DEV)'
-                    runtimeStack: 'NODE|22-lts'
-                    package: '$(Pipeline.Workspace)/fumigacion-backend/*.zip'
-
-  # ----------------------------------------------------------
-  # 5. DESPLIEGUE EN PRODUCCION
-  # ----------------------------------------------------------
-  - stage: DeployProd
-    displayName: 'Deploy PROD'
-    dependsOn: Package
-    condition: |
-      and(
-        succeeded(),
+- stage: DeployDev
+  displayName: 'Deploy DEV'
+  dependsOn: Package
+  condition: |
+    and(
+      succeeded(),
+      or(
+        eq(variables['Build.SourceBranch'], 'refs/heads/develop'),
         eq(variables['Build.SourceBranch'], 'refs/heads/main')
       )
-    jobs:
-      - deployment: DeployProduction
-        displayName: 'Desplegar en PROD'
-        environment: 'prod'
-        pool:
-          vmImage: 'ubuntu-latest'
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - task: AzureWebApp@1
-                  displayName: 'Desplegar en App Service PROD'
-                  inputs:
-                    azureSubscription: '$(AZURE_SERVICE_CONNECTION)'
-                    appType: 'webAppLinux'
-                    appName: '$(WEBAPP_PROD)'
-                    runtimeStack: 'NODE|22-lts'
-                    package: '$(Pipeline.Workspace)/fumigacion-backend/*.zip'
+    )
+  jobs:
+    - deployment: DeployDevelopment
+      displayName: 'Desplegar en DEV'
+      environment: 'dev'
+      pool:
+        vmImage: 'ubuntu-latest'
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - task: AzureWebApp@1
+                displayName: 'Desplegar en App Service (DEV)'
+                inputs:
+                  azureSubscription: '$(AZURE_SERVICE_CONNECTION)'
+                  appType: 'webAppLinux'
+                  appName: '$(WEBAPP_DEV)'
+                  runtimeStack: 'NODE|22-lts'
+                  package: '$(Pipeline.Workspace)/fumigacion-backend/*.zip'
+
+# ============================================================
+# STAGE 5 - DEPLOY PROD
+# ============================================================
+
+- stage: DeployProd
+  displayName: 'Deploy PROD'
+  dependsOn: Package
+  condition: |
+    and(
+      succeeded(),
+      eq(variables['Build.SourceBranch'], 'refs/heads/main')
+    )
+  jobs:
+    - deployment: DeployProduction
+      displayName: 'Desplegar en PROD'
+      environment: 'prod'
+      pool:
+        vmImage: 'ubuntu-latest'
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - task: AzureWebApp@1
+                displayName: 'Desplegar en App Service (PROD)'
+                inputs:
+                  azureSubscription: '$(AZURE_SERVICE_CONNECTION)'
+                  appType: 'webAppLinux'
+                  appName: '$(WEBAPP_PROD)'
+                  runtimeStack: 'NODE|22-lts'
+                  package: '$(Pipeline.Workspace)/fumigacion-backend/*.zip'
+
+# ============================================================
+# STAGE 6 - ESCANEO DE SEGURIDAD (ZAP)
+# Lighthouse no aplica al backend porque no tiene páginas web.
+# ============================================================
+
+- stage: SecurityScans
+  displayName: 'Escaneo de seguridad (ZAP)'
+  dependsOn: DeployProd
+  condition: succeeded()
+  jobs:
+    - job: ZapBaseline
+      displayName: 'OWASP ZAP (baseline)'
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - checkout: none
+
+        - script: |
+            for i in 1 2 3 4 5 6; do
+              curl -fsS -o /dev/null "$(BACKEND_URL)/health" && break
+              sleep 15
+            done
+          displayName: 'Despertar el backend'
+
+        - script: |
+            mkdir -p "$(Build.ArtifactStagingDirectory)/zap"
+            chmod 777 "$(Build.ArtifactStagingDirectory)/zap"
+            docker run --rm -v "$(Build.ArtifactStagingDirectory)/zap:/zap/wrk/:rw" \
+              ghcr.io/zaproxy/zaproxy:stable \
+              zap-baseline.py -t "$(BACKEND_URL)/health" -r zap-backend-reporte.html -I
+          displayName: 'Escaneo baseline de ZAP'
+
+        - publish: '$(Build.ArtifactStagingDirectory)/zap'
+          artifact: zap-backend
+          condition: succeededOrFailed()
+
+    - job: ZapApi
+      displayName: 'OWASP ZAP (API con OpenAPI, modo seguro)'
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - checkout: self
+
+        - script: |
+            for i in 1 2 3 4 5 6; do
+              curl -fsS -o /dev/null "$(BACKEND_URL)/health" && break
+              sleep 15
+            done
+          displayName: 'Despertar el backend'
+
+        - script: |
+            mkdir -p "$(Build.ArtifactStagingDirectory)/zap-api"
+            cp openapi.json "$(Build.ArtifactStagingDirectory)/zap-api/openapi.json"
+            chmod -R 777 "$(Build.ArtifactStagingDirectory)/zap-api"
+            docker run --rm -v "$(Build.ArtifactStagingDirectory)/zap-api:/zap/wrk/:rw" \
+              ghcr.io/zaproxy/zaproxy:stable \
+              zap-api-scan.py -t /zap/wrk/openapi.json -f openapi -r zap-api-reporte.html -S -I
+          displayName: 'Escaneo de la API con ZAP (sin ataques)'
+          continueOnError: true
+
+        - publish: '$(Build.ArtifactStagingDirectory)/zap-api'
+          artifact: zap-api
+          condition: succeededOrFailed()

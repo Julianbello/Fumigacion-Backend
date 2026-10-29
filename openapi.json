@@ -1,0 +1,148 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "API Control de Fumigacion",
+    "version": "1.0.0"
+  },
+  "servers": [
+    { "url": "https://fumigacion-backend-julianbello.azurewebsites.net" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Estado del servicio y de la base de datos",
+        "responses": { "200": { "description": "Servicio y base de datos activos" }, "503": { "description": "Sin conexion a la base de datos" } }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "summary": "Iniciar sesion",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "password"],
+                "properties": {
+                  "username": { "type": "string", "example": "usuario_demo" },
+                  "password": { "type": "string", "example": "ClaveDemo123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Token y rol" }, "401": { "description": "Credenciales invalidas" } }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "summary": "Crear una cuenta (rol OPERARIO)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["username", "password"],
+                "properties": {
+                  "username": { "type": "string", "example": "usuario_demo" },
+                  "password": { "type": "string", "example": "ClaveDemo123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Usuario creado" }, "400": { "description": "Datos invalidos" }, "409": { "description": "El usuario ya existe" } }
+      }
+    },
+    "/api/productos/tipos": {
+      "get": {
+        "summary": "Listar tipos de producto",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Lista de tipos" }, "401": { "description": "Token requerido" } }
+      },
+      "post": {
+        "summary": "Crear un tipo de producto",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["nombre"],
+                "properties": { "nombre": { "type": "string", "example": "cochinilla" } }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Tipo creado" }, "400": { "description": "Nombre invalido" }, "409": { "description": "El tipo ya existe" } }
+      }
+    },
+    "/api/productos": {
+      "post": {
+        "summary": "Crear un producto",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["nombre", "categoria", "dosisMlPorLitro", "stockLitros"],
+                "properties": {
+                  "nombre": { "type": "string", "example": "Fungicida Z" },
+                  "categoria": { "type": "string", "example": "polvoso" },
+                  "dosisMlPorLitro": { "type": "number", "example": 3 },
+                  "stockLitros": { "type": "number", "example": 20 }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Producto creado" }, "400": { "description": "Datos invalidos" }, "409": { "description": "Producto repetido" } }
+      }
+    },
+    "/api/fumigaciones": {
+      "get": {
+        "summary": "Historial de fumigaciones",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Lista de fumigaciones" }, "401": { "description": "Token requerido" } }
+      },
+      "post": {
+        "summary": "Registrar una fumigacion",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["productoId", "litrosAplicados", "categoria"],
+                "properties": {
+                  "productoId": { "type": "string", "example": "64f000000000000000000001" },
+                  "litrosAplicados": { "type": "number", "example": 2 },
+                  "categoria": { "type": "string", "example": "trips" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Fumigacion registrada" }, "400": { "description": "Datos invalidos o stock insuficiente" } }
+      }
+    },
+    "/api/fumigaciones/inventario": {
+      "get": {
+        "summary": "Inventario de productos",
+        "security": [{ "bearerAuth": [] }],
+        "responses": { "200": { "description": "Lista de productos" }, "401": { "description": "Token requerido" } }
+      }
+    }
+  }
+}
