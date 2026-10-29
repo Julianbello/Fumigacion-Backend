@@ -24,6 +24,12 @@ variables:
   WEBAPP_DEV: 'fumigacion-backend-julianbello'
   WEBAPP_PROD: 'fumigacion-backend-julianbello'
   BACKEND_URL: 'https://fumigacion-backend-julianbello.azurewebsites.net'
+  FRONTEND_URL: 'https://fumigacion-frontend-julianbello.azurewebsites.net'
+  # --- SonarCloud: déjalo en 'false' hasta tenerlo configurado ---
+  RUN_SONAR: 'false'
+  SONAR_SERVICE_CONNECTION: 'sonarcloud-fumigacion'
+  SONAR_ORGANIZATION: 'julianbello'
+  SONAR_PROJECT_KEY: 'Julianbello_Fumigacion-Backend'
 
 stages:
 
@@ -111,6 +117,47 @@ stages:
 
         - script: node --check scripts/seed.js
           displayName: 'Validar seed.js'
+
+    - ${{ if eq(variables['RUN_SONAR'], 'true') }}:
+      - job: SonarCloud
+        displayName: 'Análisis de código (SonarCloud)'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+            fetchDepth: 0
+
+          - task: NodeTool@0
+            displayName: 'Instalar Node.js'
+            inputs:
+              versionSpec: '$(NODE_VERSION)'
+
+          - task: SonarCloudPrepare@4
+            displayName: 'SonarCloud: preparar análisis'
+            inputs:
+              SonarCloud: '$(SONAR_SERVICE_CONNECTION)'
+              organization: '$(SONAR_ORGANIZATION)'
+              scannerMode: 'cli'
+              configMode: 'manual'
+              cliProjectKey: '$(SONAR_PROJECT_KEY)'
+              cliProjectName: 'fumigacion-backend'
+              cliSources: 'src,api'
+
+          - script: npm install --no-audit --no-fund --ignore-scripts
+            displayName: 'Instalar dependencias'
+
+          - script: npm test -- --coverage
+            displayName: 'Pruebas con cobertura (para SonarCloud)'
+
+          - task: SonarCloudAnalyze@4
+            displayName: 'SonarCloud: analizar código'
+            inputs:
+              jdkversion: 'JAVA_HOME_17_X64'
+
+          - task: SonarCloudPublish@4
+            displayName: 'SonarCloud: publicar resultado del Quality Gate'
+            inputs:
+              pollingTimeoutSec: '300'
 
 # ============================================================
 # STAGE 3 - PACKAGE
@@ -210,11 +257,11 @@ stages:
 
 # ============================================================
 # STAGE 6 - ESCANEO DE SEGURIDAD (ZAP)
-# Lighthouse no aplica al backend porque no tiene páginas web.
+# Lighthouse mide páginas web: se ejecuta sobre el frontend que usa esta API.
 # ============================================================
 
 - stage: SecurityScans
-  displayName: 'Escaneo de seguridad (ZAP)'
+  displayName: 'Escaneo de seguridad (ZAP y Lighthouse)'
   dependsOn: DeployProd
   condition: succeeded()
   jobs:
@@ -271,3 +318,34 @@ stages:
         - publish: '$(Build.ArtifactStagingDirectory)/zap-api'
           artifact: zap-api
           condition: succeededOrFailed()
+
+    - job: LighthouseFrontend
+      displayName: 'Lighthouse (sobre el frontend que usa esta API)'
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - checkout: none
+
+        - task: NodeTool@0
+          displayName: 'Instalar Node.js 22'
+          inputs:
+            versionSpec: '22.x'
+
+        - script: |
+            for i in 1 2 3 4 5; do
+              curl -fsS -o /dev/null "$(FRONTEND_URL)/login.html" && break
+              sleep 15
+            done
+          displayName: 'Despertar el frontend'
+
+        - script: |
+            mkdir -p "$(Build.ArtifactStagingDirectory)/lighthouse"
+            npx --yes lighthouse "$(FRONTEND_URL)/login.html" \
+              --chrome-flags="--headless=new --no-sandbox" \
+              --output=html --output=json \
+              --output-path="$(Build.ArtifactStagingDirectory)/lighthouse/reporte" --quiet
+          displayName: 'Ejecutar Lighthouse'
+
+        - publish: '$(Build.ArtifactStagingDirectory)/lighthouse'
+          artifact: lighthouse-backend
+          condition: succeeded()
