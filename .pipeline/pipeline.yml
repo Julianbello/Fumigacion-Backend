@@ -26,7 +26,7 @@ variables:
   BACKEND_URL: 'https://fumigacion-backend-julianbello.azurewebsites.net'
   FRONTEND_URL: 'https://fumigacion-frontend-julianbello.azurewebsites.net'
   # --- SonarCloud: déjalo en 'false' hasta tenerlo configurado ---
-  RUN_SONAR: 'false'
+  RUN_SONAR: 'true'
   SONAR_SERVICE_CONNECTION: 'sonarcloud-fumigacion'
   SONAR_ORGANIZATION: 'julianbello'
   SONAR_PROJECT_KEY: 'Julianbello_Fumigacion-Backend'
