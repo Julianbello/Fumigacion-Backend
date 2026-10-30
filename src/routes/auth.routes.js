@@ -6,11 +6,18 @@ const router = express.Router();
 
 const USERNAME_VALIDO = /^[a-zA-Z0-9._-]{3,30}$/;
 
-router.post("/login", async (req, res) => {
+// Exige usuario y contraseña como texto no vacío (evita también inyección con objetos).
+function exigirCredenciales(req, res, next) {
   const { username, password } = req.body || {};
   if (typeof username !== "string" || typeof password !== "string" || !username || !password) {
     return res.status(400).json({ error: "Usuario y contraseña requeridos" });
   }
+  req.credenciales = { username, password };
+  next();
+}
+
+router.post("/login", exigirCredenciales, async (req, res) => {
+  const { username, password } = req.credenciales;
   try {
     const usuario = await Usuario.findOne({ username });
     if (!usuario) return res.status(401).json({ error: "Credenciales inválidas" });
@@ -30,11 +37,8 @@ router.post("/login", async (req, res) => {
 });
 
 // Registro público: siempre crea usuarios con rol OPERARIO (el rol nunca viene del cliente).
-router.post("/register", async (req, res) => {
-  const { username, password } = req.body || {};
-  if (typeof username !== "string" || typeof password !== "string" || !username || !password) {
-    return res.status(400).json({ error: "Usuario y contraseña requeridos" });
-  }
+router.post("/register", exigirCredenciales, async (req, res) => {
+  const { username, password } = req.credenciales;
   if (!USERNAME_VALIDO.test(username)) {
     return res.status(400).json({
       error: "El usuario debe tener entre 3 y 30 caracteres (letras, números, punto, guion o guion bajo)"
